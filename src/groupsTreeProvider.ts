@@ -65,12 +65,7 @@ export class GroupTreeItem extends vscode.TreeItem {
         // 根据选中状态设置图标
         this.iconPath = this.getIcon();
 
-        // 双击打开组
-        this.command = {
-            command: 'devContainerGroups.openGroup',
-            title: '打开组',
-            arguments: [this]
-        };
+        // 不设置命令，避免单击/双击操作
     }
 
     private getIcon(): vscode.ThemeIcon {
@@ -84,10 +79,22 @@ export class GroupTreeItem extends vscode.TreeItem {
     }
 
     private buildDescription(): string {
+        const parts: string[] = [];
+
+        // 显示选中状态
         if (this.selectedCount > 0) {
-            return `✓ ${this.selectedCount}/${this.group.projects.length} 个项目`;
+            parts.push(`✓ ${this.selectedCount}/${this.group.projects.length} 个项目`);
+        } else {
+            parts.push(`${this.group.projects.length} 个项目`);
         }
-        return `${this.group.projects.length} 个项目`;
+
+        // 显示权重分（仅当权重分大于0时）
+        const weight = this.group.weight ?? 0;
+        if (weight > 0) {
+            parts.push(`⭐${weight}`);
+        }
+
+        return parts.join(' ');
     }
 
     private buildTooltip(): string {
@@ -96,6 +103,10 @@ export class GroupTreeItem extends vscode.TreeItem {
         lines.push(`总项目数: ${this.group.projects.length}`);
         if (this.selectedCount > 0) {
             lines.push(`已选中: ${this.selectedCount} 个项目`);
+        }
+        const weight = this.group.weight ?? 0;
+        if (weight > 0) {
+            lines.push(`权重分: ${weight}`);
         }
         return lines.join('\n');
     }

@@ -16,13 +16,19 @@ export function activate(context: vscode.ExtensionContext) {
     const groupsProvider = new GroupsTreeProvider(groupManager, projectManager);
 
     // 注册树形视图
-    vscode.window.registerTreeDataProvider(
+    const projectsTreeView = vscode.window.createTreeView(
         "projectGroupsProjectsView",
-        projectsProvider,
+        {
+            treeDataProvider: projectsProvider,
+            showCollapseAll: true
+        }
     );
-    vscode.window.registerTreeDataProvider(
+    const groupsTreeView = vscode.window.createTreeView(
         "projectGroupsGroupsView",
-        groupsProvider,
+        {
+            treeDataProvider: groupsProvider,
+            showCollapseAll: true
+        }
     );
 
     // 刷新项目列表
@@ -61,6 +67,37 @@ export function activate(context: vscode.ExtensionContext) {
                     projectManager.toggleSelection(item.project.path);
                     projectsProvider.refresh();
                     groupsProvider.refresh(); // 同时刷新组合列表
+                }
+            },
+        ),
+    );
+
+    // 在项目列表中定位到项目
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.locateProjectInList",
+            async (item) => {
+                if (item && item.project) {
+                    // 先切换选中状态
+                    projectManager.toggleSelection(item.project.path);
+                    projectsProvider.refresh();
+                    groupsProvider.refresh();
+
+                    try {
+                        // 查找项目的树项
+                        const treeItem = await projectsProvider.findProjectTreeItem(item.project.path);
+
+                        if (treeItem) {
+                            // 使用 reveal 定位到项目
+                            await projectsTreeView.reveal(treeItem, {
+                                select: true,
+                                focus: true,
+                                expand: true
+                            });
+                        }
+                    } catch (error) {
+                        console.log('无法定位到项目:', error);
+                    }
                 }
             },
         ),
@@ -162,6 +199,66 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
+    // 在项目列表中选中组内的项目
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.selectGroupInProjects",
+            async (item) => {
+                if (item && item.group) {
+                    // 清除当前选中
+                    projectManager.clearSelection();
+
+                    // 选中组内的所有项目
+                    for (const projectPath of item.group.projects) {
+                        projectManager.toggleSelection(projectPath);
+                    }
+
+                    // 刷新两个视图
+                    projectsProvider.refresh();
+                    groupsProvider.refresh();
+
+                    // 在项目列表中定位到第一个项目
+                    if (item.group.projects.length > 0) {
+                        const firstProjectPath = item.group.projects[0];
+                        const allProjects = projectManager.getAllProjects();
+                        const firstProject = allProjects.find(p => p.path === firstProjectPath);
+
+                        if (firstProject) {
+                            // 根据当前视图模式找到对应的树项
+                            const viewMode = projectsProvider.getViewMode();
+
+                            // 等待视图刷新完成
+                            await new Promise(resolve => setTimeout(resolve, 100));
+
+                            // 尝试展开并定位到项目
+                            try {
+                                if (viewMode === 'flat') {
+                                    // 平铺模式：直接定位到项目
+                                    const projectItem = new (await import('./projectsTreeProvider')).ProjectTreeItem(
+                                        firstProject,
+                                        projectManager.isSelected(firstProject.path)
+                                    );
+                                    await projectsTreeView.reveal(projectItem, { select: true, focus: true });
+                                } else if (viewMode === 'by-type') {
+                                    // 按类型分组：先展开类型组，再定位到项目
+                                    // 这里需要更复杂的逻辑来找到父节点
+                                } else if (viewMode === 'by-path') {
+                                    // 按路径分组：需要展开路径层级
+                                }
+                            } catch (error) {
+                                console.log('无法定位到项目:', error);
+                            }
+                        }
+                    }
+
+                    vscode.window.showInformationMessage(
+                        `已在项目列表中选中组 "${item.group.name}" 的 ${item.group.projects.length} 个项目`
+                    );
+                }
+            },
+        ),
+    );
+
     // 删除组
     context.subscriptions.push(
         vscode.commands.registerCommand(
@@ -256,8 +353,8 @@ export function activate(context: vscode.ExtensionContext) {
                     });
 
                     if (newName) {
-                        // 复制项目列表
-                        groupManager.saveGroup(newName, [...item.group.projects]);
+                        // 复制项目列表和权重分
+                        groupManager.saveGroup(newName, [...item.group.projects], item.group.weight);
                         groupsProvider.refresh();
                         vscode.window.showInformationMessage(
                             `已复制组 "${item.group.name}" 为 "${newName}"（包含 ${item.group.projects.length} 个项目）`,
@@ -266,6 +363,115 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             },
         ),
+    );
+
+    // 设置组权重分
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.setGroupWeight",
+            async (item) => {
+                if (item && item.group) {
+                    const currentWeight = item.group.weight ?? 0;
+                    const input = await vscode.window.showInputBox({
+                        prompt: "设置权重分（数字越大排序越靠前）",
+                        value: currentWeight.toString(),
+                        placeHolder: "输入数字，例如：100",
+                        validateInput: (value) => {
+                            const num = parseInt(value);
+                            if (isNaN(num)) {
+                                return "请输入有效的数字";
+                            }
+                            if (num < 0) {
+                                return "权重分不能为负数";
+                            }
+                            return null;
+                        }
+                    });
+
+                    if (input !== undefined) {
+                        const weight = parseInt(input);
+                        groupManager.setGroupWeight(item.group.name, weight);
+                        groupsProvider.refresh();
+                        vscode.window.showInformationMessage(
+                            `组 "${item.group.name}" 的权重分已设置为 ${weight}`
+                        );
+                    }
+                }
+            }
+        )
+    );
+
+    // 从组合中移除项目
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.removeProjectFromGroup",
+            async (item) => {
+                if (item && item.project && item.groupName) {
+                    const answer = await vscode.window.showWarningMessage(
+                        `从组合 "${item.groupName}" 中移除项目 "${item.project.name}"？`,
+                        "是",
+                        "否"
+                    );
+
+                    if (answer === "是") {
+                        groupManager.removeProjectFromGroup(item.groupName, item.project.path);
+                        groupsProvider.refresh();
+                        vscode.window.showInformationMessage(
+                            `已从组合 "${item.groupName}" 中移除项目 "${item.project.name}"`
+                        );
+                    }
+                }
+            }
+        )
+    );
+
+    // 添加项目到组合
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.addProjectToGroup",
+            async (item) => {
+                if (item && item.project) {
+                    // 获取所有组合
+                    const allGroups = groupManager.getAllGroups();
+
+                    if (allGroups.length === 0) {
+                        vscode.window.showWarningMessage("没有可用的组合，请先创建组合");
+                        return;
+                    }
+
+                    // 创建快速选择项
+                    const quickPickItems = allGroups.map(group => ({
+                        label: group.name,
+                        description: `${group.projects.length} 个项目`,
+                        detail: group.projects.includes(item.project.path) ? "✓ 已包含此项目" : undefined,
+                        group: group
+                    }));
+
+                    // 显示快速选择
+                    const selected = await vscode.window.showQuickPick(quickPickItems, {
+                        placeHolder: `选择要添加到的组合（当前项目：${item.project.name}）`,
+                        matchOnDescription: true,
+                        matchOnDetail: true
+                    });
+
+                    if (selected) {
+                        // 检查项目是否已经在组合中
+                        if (selected.group.projects.includes(item.project.path)) {
+                            vscode.window.showInformationMessage(
+                                `项目 "${item.project.name}" 已经在组合 "${selected.group.name}" 中`
+                            );
+                        } else {
+                            // 添加项目到组合
+                            groupManager.addProjectToGroup(selected.group.name, item.project.path);
+                            groupsProvider.refresh();
+                            vscode.window.showInformationMessage(
+                                `已将项目 "${item.project.name}" 添加到组合 "${selected.group.name}"`
+                            );
+                        }
+                    }
+                }
+            }
+        )
     );
 
     // 切换显示模式

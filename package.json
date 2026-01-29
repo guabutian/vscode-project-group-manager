@@ -60,6 +60,11 @@
         "category": "Project Groups"
       },
       {
+        "command": "devContainerGroups.selectGroupInProjects",
+        "title": "在项目列表中选中",
+        "category": "Project Groups"
+      },
+      {
         "command": "devContainerGroups.deleteGroup",
         "title": "删除组",
         "icon": "$(trash)",
@@ -80,6 +85,11 @@
         "command": "devContainerGroups.duplicateGroup",
         "title": "复制",
         "icon": "$(copy)",
+        "category": "Project Groups"
+      },
+      {
+        "command": "devContainerGroups.setGroupWeight",
+        "title": "设置权重分",
         "category": "Project Groups"
       },
       {
@@ -105,6 +115,16 @@
       {
         "command": "devContainerGroups.deleteProject",
         "title": "删除",
+        "category": "Project Groups"
+      },
+      {
+        "command": "devContainerGroups.removeProjectFromGroup",
+        "title": "从组合中移除",
+        "category": "Project Groups"
+      },
+      {
+        "command": "devContainerGroups.addProjectToGroup",
+        "title": "添加到组合",
         "category": "Project Groups"
       },
       {
@@ -218,6 +238,11 @@
           "group": "2_edit@2"
         },
         {
+          "command": "devContainerGroups.setGroupWeight",
+          "when": "view == projectGroupsGroupsView && viewItem == group",
+          "group": "2_edit@3"
+        },
+        {
           "command": "devContainerGroups.deleteGroup",
           "when": "view == projectGroupsGroupsView && viewItem == group",
           "group": "3_delete@1"
@@ -233,7 +258,7 @@
           "group": "2_edit@1"
         },
         {
-          "command": "devContainerGroups.deleteProject",
+          "command": "devContainerGroups.removeProjectFromGroup",
           "when": "view == projectGroupsGroupsView && viewItem == projectInGroup",
           "group": "3_delete@1"
         },
@@ -251,6 +276,11 @@
           "command": "devContainerGroups.renameProject",
           "when": "view == projectGroupsProjectsView && viewItem == project",
           "group": "2_edit@1"
+        },
+        {
+          "command": "devContainerGroups.addProjectToGroup",
+          "when": "view == projectGroupsProjectsView && viewItem == project",
+          "group": "2_edit@2"
         },
         {
           "command": "devContainerGroups.deleteProject",

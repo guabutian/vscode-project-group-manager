@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 export interface ProjectGroup {
     name: string;
     projects: string[];
+    weight?: number;  // 权重分，默认为0
 }
 
 export class GroupManager {
@@ -23,7 +24,8 @@ export class GroupManager {
             const uniquePaths = Array.from(new Set(group.projects));
             this.groups.set(group.name, {
                 name: group.name,
-                projects: uniquePaths
+                projects: uniquePaths,
+                weight: group.weight
             });
         }
     }
@@ -35,6 +37,13 @@ export class GroupManager {
 
     getAllGroups(): ProjectGroup[] {
         return Array.from(this.groups.values()).sort((a, b) => {
+            // 首先按权重分降序排序（高分在前）
+            const weightA = a.weight ?? 0;
+            const weightB = b.weight ?? 0;
+            if (weightA !== weightB) {
+                return weightB - weightA;  // 降序
+            }
+            // 权重分相同时，按名称字母顺序排序
             return a.name.localeCompare(b.name);
         });
     }
@@ -43,13 +52,14 @@ export class GroupManager {
         return this.groups.get(name);
     }
 
-    saveGroup(name: string, projectPaths: string[]): void {
+    saveGroup(name: string, projectPaths: string[], weight?: number): void {
         // 去重：使用 Set 去除重复的项目路径
         const uniquePaths = Array.from(new Set(projectPaths));
 
         this.groups.set(name, {
             name,
-            projects: uniquePaths
+            projects: uniquePaths,
+            weight: weight
         });
         this.saveGroups();
     }
@@ -76,7 +86,8 @@ export class GroupManager {
         // 创建新的组
         this.groups.set(newName, {
             name: newName,
-            projects: group.projects
+            projects: group.projects,
+            weight: group.weight
         });
 
         this.saveGroups();
@@ -89,6 +100,33 @@ export class GroupManager {
             // 去重：使用 Set 去除重复的项目路径
             group.projects = Array.from(new Set(projectPaths));
             this.saveGroups();
+        }
+    }
+
+    setGroupWeight(name: string, weight: number): void {
+        const group = this.groups.get(name);
+        if (group) {
+            group.weight = weight;
+            this.saveGroups();
+        }
+    }
+
+    removeProjectFromGroup(groupName: string, projectPath: string): void {
+        const group = this.groups.get(groupName);
+        if (group) {
+            group.projects = group.projects.filter(path => path !== projectPath);
+            this.saveGroups();
+        }
+    }
+
+    addProjectToGroup(groupName: string, projectPath: string): void {
+        const group = this.groups.get(groupName);
+        if (group) {
+            // 检查项目是否已经在组合中
+            if (!group.projects.includes(projectPath)) {
+                group.projects.push(projectPath);
+                this.saveGroups();
+            }
         }
     }
 }

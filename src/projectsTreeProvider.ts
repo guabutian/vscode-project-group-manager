@@ -34,6 +34,58 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTree
         return this.viewMode;
     }
 
+    // 查找项目的树项（用于定位）
+    async findProjectTreeItem(projectPath: string): Promise<ProjectTreeItem | GroupTreeItem | PathGroupTreeItem | null> {
+        const allProjects = this.projectManager.getAllProjects();
+        const project = allProjects.find(p => p.path === projectPath);
+
+        if (!project) {
+            return null;
+        }
+
+        if (this.viewMode === 'flat') {
+            // 平铺模式：直接返回项目树项
+            return new ProjectTreeItem(
+                project,
+                this.projectManager.isSelected(project.path)
+            );
+        } else if (this.viewMode === 'by-type') {
+            // 按类型分组：返回类型组
+            const typeLabels: Record<string, string> = {
+                'local': '本地',
+                'dev-container': 'Dev Container',
+                'ssh-remote': 'SSH Remote',
+                'wsl': 'WSL',
+                'unknown': '未知'
+            };
+            const groupLabel = typeLabels[project.type] || project.type;
+            const groupProjects = allProjects.filter(p => p.type === project.type);
+            return new GroupTreeItem(groupLabel, groupProjects, project.type);
+        } else if (this.viewMode === 'by-path') {
+            // 按路径分组：返回第一级路径组
+            const parts = project.name.split('/');
+            if (parts.length > 1) {
+                const firstPart = parts[0];
+                // 找到所有以这个路径开头的项目
+                const pathProjects = allProjects.filter(p => p.name.startsWith(firstPart + '/'));
+                const root = new PathNode('', '');
+                for (const p of pathProjects) {
+                    const pParts = p.name.split('/');
+                    if (!root.children.has(pParts[0])) {
+                        root.children.set(pParts[0], new PathNode(pParts[0], ''));
+                    }
+                }
+                const childNode = root.children.get(firstPart);
+                if (childNode) {
+                    return new PathGroupTreeItem(firstPart, pathProjects, childNode);
+                }
+            }
+            return new ProjectTreeItem(project, this.projectManager.isSelected(project.path));
+        }
+
+        return null;
+    }
+
     getTreeItem(element: ProjectTreeItem | GroupTreeItem | PathGroupTreeItem): vscode.TreeItem {
         return element;
     }
