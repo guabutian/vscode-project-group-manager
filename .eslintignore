@@ -1,0 +1,27 @@
+# Dependencies
+node_modules
+
+# Build output (already in .eslintrc.js ignorePatterns, but included here for clarity)
+out
+dist
+
+# TypeScript declaration files (already in .eslintrc.js ignorePatterns, but included here for clarity)
+**/*.d.ts
+
+# Configuration files
+.vscode/
+.eslintrc.js
+.tsconfig.json
+
+# Documentation files
+*.md
+
+# Package files
+package.json
+package-lock.json
+
+# OS files
+.DS_Store
+
+# Development scripts
+dev.sh
