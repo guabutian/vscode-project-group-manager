@@ -125,15 +125,15 @@
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.openGroupsConfig",
-        "title": "编辑组配置文件",
-        "icon": "$(edit)",
-        "category": "Project Groups"
-      },
-      {
         "command": "devContainerGroups.openProject",
         "title": "打开项目",
         "icon": "$(folder-opened)",
+        "category": "Project Groups"
+      },
+      {
+        "command": "devContainerGroups.renamePathGroup",
+        "title": "重命名路径",
+        "icon": "$(edit)",
         "category": "Project Groups"
       }
     ],
@@ -201,11 +201,6 @@
           "command": "devContainerGroups.openProjectManagerConfig",
           "when": "view == projectGroupsProjectsView",
           "group": "navigation@7"
-        },
-        {
-          "command": "devContainerGroups.openGroupsConfig",
-          "when": "view == projectGroupsGroupsView",
-          "group": "navigation@1"
         }
       ],
       "projectGroups.viewModeSubmenu": [
@@ -261,6 +256,11 @@
           "command": "devContainerGroups.deleteProject",
           "when": "view == projectGroupsGroupsView && viewItem == projectInGroup",
           "group": "3_delete@1"
+        },
+        {
+          "command": "devContainerGroups.renamePathGroup",
+          "when": "view == projectGroupsProjectsView && viewItem == pathGroup",
+          "group": "2_edit@1"
         },
         {
           "command": "devContainerGroups.openProject",
