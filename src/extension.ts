@@ -328,6 +328,7 @@ export function activate(context: vscode.ExtensionContext) {
                         const success = projectManager.renameProject(item.project.path, newName);
                         if (success) {
                             projectsProvider.refresh();
+                            groupsProvider.refresh(); // 同时刷新组合列表
                             vscode.window.showInformationMessage(
                                 `项目 "${item.project.name}" 已重命名为 "${newName}"`,
                             );
@@ -355,10 +356,32 @@ export function activate(context: vscode.ExtensionContext) {
                         const success = projectManager.deleteProject(item.project.path);
                         if (success) {
                             projectsProvider.refresh();
+                            groupsProvider.refresh(); // 同时刷新组合列表
                             vscode.window.showInformationMessage(
                                 `项目 "${item.project.name}" 已删除`,
                             );
                         }
+                    }
+                }
+            },
+        ),
+    );
+
+    // 打开单个项目
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.openProject",
+            async (item) => {
+                if (item && item.project) {
+                    try {
+                        await openDevContainer(item.project.path);
+                        vscode.window.showInformationMessage(
+                            `正在打开项目 "${item.project.name}"`,
+                        );
+                    } catch (error) {
+                        vscode.window.showErrorMessage(
+                            `打开项目 "${item.project.name}" 失败: ${error}`,
+                        );
                     }
                 }
             },

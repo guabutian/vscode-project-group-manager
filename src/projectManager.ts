@@ -6,8 +6,11 @@ import * as vscode from "vscode";
 export interface Project {
     name: string;
     path: string;
-    type: 'local' | 'ssh-remote' | 'dev-container' | 'wsl' | 'unknown';
-    hasDevContainer: boolean;
+    type: "local" | "ssh-remote" | "dev-container" | "wsl" | "unknown";
+    paths?: string[];
+    tags?: string[];
+    enabled?: boolean;
+    profile?: string;
 }
 
 export class ProjectManager {
@@ -33,13 +36,15 @@ export class ProjectManager {
             }
 
             const projectType = this.detectProjectType(project.path);
-            const hasDevContainer = projectType === 'dev-container';
 
             this.projects.push({
                 name: project.name,
                 path: project.path,
                 type: projectType,
-                hasDevContainer: hasDevContainer,
+                paths: project.paths || [],
+                tags: project.tags || [],
+                enabled: project.enabled !== undefined ? project.enabled : true,
+                profile: project.profile || "",
             });
         }
 
@@ -72,7 +77,13 @@ export class ProjectManager {
                         projects.push({
                             name: item.name || path.basename(item.rootPath),
                             path: item.rootPath,
-                            hasDevContainer: false,
+                            paths: item.paths || [],
+                            tags: item.tags || [],
+                            enabled:
+                                item.enabled !== undefined
+                                    ? item.enabled
+                                    : true,
+                            profile: item.profile || "",
                         });
                     }
                 }
@@ -151,61 +162,34 @@ export class ProjectManager {
         return null;
     }
 
-    private hasDevContainer(projectPath: string): boolean {
-        if (!fs.existsSync(projectPath)) {
-            return false;
-        }
-
-        const devcontainerPath = path.join(projectPath, ".devcontainer");
-        if (!fs.existsSync(devcontainerPath)) {
-            return false;
-        }
-
-        // 检查是否存在 devcontainer.json 或 docker-compose.yml
-        const devcontainerJson = path.join(
-            devcontainerPath,
-            "devcontainer.json",
-        );
-        const dockerCompose = path.join(devcontainerPath, "docker-compose.yml");
-
-        return fs.existsSync(devcontainerJson) || fs.existsSync(dockerCompose);
-    }
-
     /**
      * 检测项目类型
      * @param projectPath 项目路径
      * @returns 项目类型
      */
-    private detectProjectType(projectPath: string): Project['type'] {
+    private detectProjectType(projectPath: string): Project["type"] {
         // Dev Container 远程项目
         if (projectPath.startsWith("vscode-remote://dev-container+")) {
-            return 'dev-container';
+            return "dev-container";
         }
 
         // SSH Remote 项目
         if (projectPath.startsWith("vscode-remote://ssh-remote+")) {
-            return 'ssh-remote';
+            return "ssh-remote";
         }
 
         // WSL 项目
         if (projectPath.startsWith("vscode-remote://wsl+")) {
-            return 'wsl';
+            return "wsl";
         }
 
         // 其他远程类型
         if (projectPath.startsWith("vscode-remote://")) {
-            return 'unknown';
+            return "unknown";
         }
 
         // 本地项目
-        return 'local';
-    }
-
-    /**
-     * 判断是否为 Dev Container 项目（已废弃，保留用于兼容）
-     */
-    private isDevContainerProject(projectPath: string): boolean {
-        return this.detectProjectType(projectPath) === 'dev-container';
+        return "local";
     }
 
     getAllProjects(): Project[] {
@@ -237,13 +221,15 @@ export class ProjectManager {
     }
 
     renameProject(oldPath: string, newName: string): boolean {
-        const project = this.projects.find(p => p.path === oldPath);
+        const project = this.projects.find((p) => p.path === oldPath);
         if (!project) {
             return false;
         }
 
         // 检查新名称是否已存在
-        if (this.projects.some(p => p.name === newName && p.path !== oldPath)) {
+        if (
+            this.projects.some((p) => p.name === newName && p.path !== oldPath)
+        ) {
             vscode.window.showWarningMessage(`项目名称 "${newName}" 已存在`);
             return false;
         }
@@ -258,7 +244,7 @@ export class ProjectManager {
     }
 
     deleteProject(projectPath: string): boolean {
-        const index = this.projects.findIndex(p => p.path === projectPath);
+        const index = this.projects.findIndex((p) => p.path === projectPath);
         if (index === -1) {
             return false;
         }
@@ -278,21 +264,30 @@ export class ProjectManager {
     private saveToProjectManager(): void {
         const configPath = this.getProjectManagerConfigPath();
         if (!configPath) {
-            vscode.window.showErrorMessage('无法找到 Project Manager 配置文件');
+            vscode.window.showErrorMessage("无法找到 Project Manager 配置文件");
             return;
         }
 
         try {
-            // 转换为 Project Manager 格式
-            const config = this.projects.map(project => ({
+            // 转换为 Project Manager 格式，保留所有字段
+            const config = this.projects.map((project) => ({
                 name: project.name,
                 rootPath: project.path,
-                enabled: true
+                paths: project.paths || [],
+                tags: project.tags || [],
+                enabled: project.enabled !== undefined ? project.enabled : true,
+                profile: project.profile || ""
             }));
 
-            fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+            fs.writeFileSync(
+                configPath,
+                JSON.stringify(config, null, 4),
+                "utf8",
+            );
         } catch (error) {
-            vscode.window.showErrorMessage(`保存 Project Manager 配置失败: ${error}`);
+            vscode.window.showErrorMessage(
+                `保存 Project Manager 配置失败: ${error}`,
+            );
         }
     }
 

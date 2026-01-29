@@ -129,6 +129,12 @@
         "title": "编辑组配置文件",
         "icon": "$(edit)",
         "category": "Project Groups"
+      },
+      {
+        "command": "devContainerGroups.openProject",
+        "title": "打开项目",
+        "icon": "$(folder-opened)",
+        "category": "Project Groups"
       }
     ],
     "viewsContainers": {
@@ -224,32 +230,52 @@
         {
           "command": "devContainerGroups.openGroup",
           "when": "view == projectGroupsGroupsView && viewItem == group",
-          "group": "inline@1"
-        },
-        {
-          "command": "devContainerGroups.deleteGroup",
-          "when": "view == projectGroupsGroupsView && viewItem == group",
-          "group": "inline@2"
+          "group": "1_actions@1"
         },
         {
           "command": "devContainerGroups.renameGroup",
           "when": "view == projectGroupsGroupsView && viewItem == group",
-          "group": "context@1"
+          "group": "2_edit@1"
         },
         {
           "command": "devContainerGroups.duplicateGroup",
           "when": "view == projectGroupsGroupsView && viewItem == group",
-          "group": "context@2"
+          "group": "2_edit@2"
+        },
+        {
+          "command": "devContainerGroups.deleteGroup",
+          "when": "view == projectGroupsGroupsView && viewItem == group",
+          "group": "3_delete@1"
+        },
+        {
+          "command": "devContainerGroups.openProject",
+          "when": "view == projectGroupsGroupsView && viewItem == projectInGroup",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "devContainerGroups.renameProject",
+          "when": "view == projectGroupsGroupsView && viewItem == projectInGroup",
+          "group": "2_edit@1"
+        },
+        {
+          "command": "devContainerGroups.deleteProject",
+          "when": "view == projectGroupsGroupsView && viewItem == projectInGroup",
+          "group": "3_delete@1"
+        },
+        {
+          "command": "devContainerGroups.openProject",
+          "when": "view == projectGroupsProjectsView && viewItem == project",
+          "group": "1_actions@1"
         },
         {
           "command": "devContainerGroups.renameProject",
           "when": "view == projectGroupsProjectsView && viewItem == project",
-          "group": "context@1"
+          "group": "2_edit@1"
         },
         {
           "command": "devContainerGroups.deleteProject",
           "when": "view == projectGroupsProjectsView && viewItem == project",
-          "group": "context@2"
+          "group": "3_delete@1"
         }
       ]
     },
