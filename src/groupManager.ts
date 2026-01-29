@@ -19,7 +19,12 @@ export class GroupManager {
         this.groups.clear();
 
         for (const group of saved) {
-            this.groups.set(group.name, group);
+            // 加载时也去重，防止历史数据有重复
+            const uniquePaths = Array.from(new Set(group.projects));
+            this.groups.set(group.name, {
+                name: group.name,
+                projects: uniquePaths
+            });
         }
     }
 
@@ -42,9 +47,12 @@ export class GroupManager {
     }
 
     saveGroup(name: string, projectPaths: string[]): void {
+        // 去重：使用 Set 去除重复的项目路径
+        const uniquePaths = Array.from(new Set(projectPaths));
+
         this.groups.set(name, {
             name,
-            projects: projectPaths
+            projects: uniquePaths
         });
         this.saveGroups();
     }
@@ -58,10 +66,40 @@ export class GroupManager {
         this.saveGroups();
     }
 
+    renameGroup(oldName: string, newName: string): boolean {
+        if (oldName === 'all') {
+            vscode.window.showWarningMessage('不能重命名 "all" 组');
+            return false;
+        }
+
+        if (this.groups.has(newName)) {
+            vscode.window.showWarningMessage(`组名 "${newName}" 已存在`);
+            return false;
+        }
+
+        const group = this.groups.get(oldName);
+        if (!group) {
+            return false;
+        }
+
+        // 删除旧的组
+        this.groups.delete(oldName);
+
+        // 创建新的组
+        this.groups.set(newName, {
+            name: newName,
+            projects: group.projects
+        });
+
+        this.saveGroups();
+        return true;
+    }
+
     updateGroup(name: string, projectPaths: string[]): void {
         const group = this.groups.get(name);
         if (group) {
-            group.projects = projectPaths;
+            // 去重：使用 Set 去除重复的项目路径
+            group.projects = Array.from(new Set(projectPaths));
             this.saveGroups();
         }
     }

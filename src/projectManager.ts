@@ -235,4 +235,68 @@ export class ProjectManager {
     clearSelection(): void {
         this.selectedPaths.clear();
     }
+
+    renameProject(oldPath: string, newName: string): boolean {
+        const project = this.projects.find(p => p.path === oldPath);
+        if (!project) {
+            return false;
+        }
+
+        // 检查新名称是否已存在
+        if (this.projects.some(p => p.name === newName && p.path !== oldPath)) {
+            vscode.window.showWarningMessage(`项目名称 "${newName}" 已存在`);
+            return false;
+        }
+
+        // 更新项目名称
+        project.name = newName;
+
+        // 保存到 Project Manager 配置
+        this.saveToProjectManager();
+
+        return true;
+    }
+
+    deleteProject(projectPath: string): boolean {
+        const index = this.projects.findIndex(p => p.path === projectPath);
+        if (index === -1) {
+            return false;
+        }
+
+        // 从列表中删除
+        this.projects.splice(index, 1);
+
+        // 从选中列表中删除
+        this.selectedPaths.delete(projectPath);
+
+        // 保存到 Project Manager 配置
+        this.saveToProjectManager();
+
+        return true;
+    }
+
+    private saveToProjectManager(): void {
+        const configPath = this.getProjectManagerConfigPath();
+        if (!configPath) {
+            vscode.window.showErrorMessage('无法找到 Project Manager 配置文件');
+            return;
+        }
+
+        try {
+            // 转换为 Project Manager 格式
+            const config = this.projects.map(project => ({
+                name: project.name,
+                rootPath: project.path,
+                enabled: true
+            }));
+
+            fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+        } catch (error) {
+            vscode.window.showErrorMessage(`保存 Project Manager 配置失败: ${error}`);
+        }
+    }
+
+    getConfigPath(): string | null {
+        return this.getProjectManagerConfigPath();
+    }
 }

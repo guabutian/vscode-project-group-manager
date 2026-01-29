@@ -1,12 +1,8 @@
 import * as vscode from "vscode";
-import * as cp from "child_process";
-import * as util from "util";
 import { GroupManager } from "./groupManager"; //组管理
 import { GroupsTreeProvider } from "./groupsTreeProvider"; // 组管理的icon
 import { ProjectManager } from "./projectManager"; // 项目管理
 import { ProjectsTreeProvider } from "./projectsTreeProvider"; // 项目管理的icon
-
-const execPromise = util.promisify(cp.exec);
 
 // 插件激活时调用
 export function activate(context: vscode.ExtensionContext) {
@@ -16,7 +12,7 @@ export function activate(context: vscode.ExtensionContext) {
     const groupManager = new GroupManager(context);
 
     // 树形视图提供者
-    const projectsProvider = new ProjectsTreeProvider(projectManager);
+    const projectsProvider = new ProjectsTreeProvider(projectManager, context);
     const groupsProvider = new GroupsTreeProvider(groupManager, projectManager);
 
     // 注册树形视图
@@ -50,6 +46,7 @@ export function activate(context: vscode.ExtensionContext) {
                 if (item && item.project) {
                     projectManager.toggleSelection(item.project.path);
                     projectsProvider.refresh();
+                    groupsProvider.refresh(); // 同时刷新组合列表
                 }
             },
         ),
@@ -60,6 +57,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand("devContainerGroups.selectAll", () => {
             projectManager.selectAll();
             projectsProvider.refresh();
+            groupsProvider.refresh(); // 同时刷新组合列表
             vscode.window.showInformationMessage(
                 `已选中所有 ${projectManager.getAllProjects().length} 个项目`,
             );
@@ -73,6 +71,7 @@ export function activate(context: vscode.ExtensionContext) {
             () => {
                 projectManager.clearSelection();
                 projectsProvider.refresh();
+                groupsProvider.refresh(); // 同时刷新组合列表
                 vscode.window.showInformationMessage("已清除所有选择");
             },
         ),
@@ -185,62 +184,226 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
-    // 重载所有窗口
+    // 重命名组
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.reloadAllWindows",
+            "devContainerGroups.renameGroup",
+            async (item) => {
+                if (item && item.group) {
+                    const newName = await vscode.window.showInputBox({
+                        prompt: "输入新的组名",
+                        value: item.group.name,
+                        placeHolder: "例如：microservices-order",
+                        validateInput: (value) => {
+                            if (!value || value.trim().length === 0) {
+                                return "组名不能为空";
+                            }
+                            if (value === item.group.name) {
+                                return "新组名与原组名相同";
+                            }
+                            if (groupManager.getGroup(value)) {
+                                return "组名已存在";
+                            }
+                            return null;
+                        },
+                    });
+
+                    if (newName) {
+                        const success = groupManager.renameGroup(item.group.name, newName);
+                        if (success) {
+                            groupsProvider.refresh();
+                            vscode.window.showInformationMessage(
+                                `组 "${item.group.name}" 已重命名为 "${newName}"`,
+                            );
+                        }
+                    }
+                }
+            },
+        ),
+    );
+
+    // 复制组
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.duplicateGroup",
+            async (item) => {
+                if (item && item.group) {
+                    // 生成默认的复制名称
+                    let defaultName = `${item.group.name}-copy`;
+                    let counter = 1;
+
+                    // 如果默认名称已存在，添加数字后缀
+                    while (groupManager.getGroup(defaultName)) {
+                        counter++;
+                        defaultName = `${item.group.name}-copy${counter}`;
+                    }
+
+                    const newName = await vscode.window.showInputBox({
+                        prompt: "输入新组的名称",
+                        value: defaultName,
+                        placeHolder: "例如：microservices-order-copy",
+                        validateInput: (value) => {
+                            if (!value || value.trim().length === 0) {
+                                return "组名不能为空";
+                            }
+                            if (groupManager.getGroup(value)) {
+                                return "组名已存在";
+                            }
+                            return null;
+                        },
+                    });
+
+                    if (newName) {
+                        // 复制项目列表
+                        groupManager.saveGroup(newName, [...item.group.projects]);
+                        groupsProvider.refresh();
+                        vscode.window.showInformationMessage(
+                            `已复制组 "${item.group.name}" 为 "${newName}"（包含 ${item.group.projects.length} 个项目）`,
+                        );
+                    }
+                }
+            },
+        ),
+    );
+
+    // 切换显示模式
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.setViewModeFlat",
+            () => {
+                projectsProvider.setViewMode('flat');
+            },
+        ),
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.setViewModeByType",
+            () => {
+                projectsProvider.setViewMode('by-type');
+            },
+        ),
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.setViewModeByHost",
+            () => {
+                projectsProvider.setViewMode('by-host');
+            },
+        ),
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.setViewModeByPath",
+            () => {
+                projectsProvider.setViewMode('by-path');
+            },
+        ),
+    );
+
+    // 重命名项目
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.renameProject",
+            async (item) => {
+                if (item && item.project) {
+                    const newName = await vscode.window.showInputBox({
+                        prompt: "输入新的项目名称",
+                        value: item.project.name,
+                        placeHolder: "例如：my-project",
+                        validateInput: (value) => {
+                            if (!value || value.trim().length === 0) {
+                                return "项目名称不能为空";
+                            }
+                            if (value === item.project.name) {
+                                return "新名称与原名称相同";
+                            }
+                            return null;
+                        },
+                    });
+
+                    if (newName) {
+                        const success = projectManager.renameProject(item.project.path, newName);
+                        if (success) {
+                            projectsProvider.refresh();
+                            vscode.window.showInformationMessage(
+                                `项目 "${item.project.name}" 已重命名为 "${newName}"`,
+                            );
+                        }
+                    }
+                }
+            },
+        ),
+    );
+
+    // 删除项目
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.deleteProject",
+            async (item) => {
+                if (item && item.project) {
+                    const answer = await vscode.window.showWarningMessage(
+                        `确定要从 Project Manager 中删除项目 "${item.project.name}"？`,
+                        { modal: true, detail: "这将从 Project Manager 配置中移除该项目，但不会删除项目文件。" },
+                        "删除",
+                        "取消",
+                    );
+
+                    if (answer === "删除") {
+                        const success = projectManager.deleteProject(item.project.path);
+                        if (success) {
+                            projectsProvider.refresh();
+                            vscode.window.showInformationMessage(
+                                `项目 "${item.project.name}" 已删除`,
+                            );
+                        }
+                    }
+                }
+            },
+        ),
+    );
+
+    // 打开 Project Manager 配置文件
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.openProjectManagerConfig",
             async () => {
-                const answer = await vscode.window.showWarningMessage(
-                    "重载所有窗口？这将关闭并重新打开所有远程窗口。",
-                    "是",
-                    "否",
+                const configPath = projectManager.getConfigPath();
+                if (configPath) {
+                    const uri = vscode.Uri.file(configPath);
+                    await vscode.window.showTextDocument(uri);
+                } else {
+                    vscode.window.showErrorMessage('未找到 Project Manager 配置文件');
+                }
+            },
+        ),
+    );
+
+    // 打开组配置文件（实际是打开 VS Code 的 globalState，这里用 JSON 编辑器显示）
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.openGroupsConfig",
+            async () => {
+                // 获取所有组的数据
+                const groups = groupManager.getAllGroups();
+
+                // 创建临时 JSON 文件显示配置
+                const tempContent = JSON.stringify(groups, null, 2);
+
+                const doc = await vscode.workspace.openTextDocument({
+                    content: tempContent,
+                    language: 'json'
+                });
+
+                await vscode.window.showTextDocument(doc, {
+                    preview: false
+                });
+
+                vscode.window.showInformationMessage(
+                    '组配置存储在 VS Code globalState 中，这是只读预览。请使用界面操作来修改组配置。'
                 );
-
-                if (answer === "是") {
-                    await vscode.commands.executeCommand(
-                        "workbench.action.reloadWindow",
-                    );
-                }
-            },
-        ),
-    );
-
-    // 重载组内所有窗口
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            "devContainerGroups.reloadGroup",
-            async (item) => {
-                if (item && item.group) {
-                    const answer = await vscode.window.showWarningMessage(
-                        `重载组 "${item.group.name}" 的所有窗口？这将重新加载该组内所有已打开的项目窗口（${item.group.projects.length} 个）。`,
-                        "是",
-                        "否",
-                    );
-
-                    if (answer === "是") {
-                        await reloadGroupWindows(item.group.projects);
-                    }
-                }
-            },
-        ),
-    );
-
-    // 关闭组内所有窗口
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            "devContainerGroups.closeGroup",
-            async (item) => {
-                if (item && item.group) {
-                    const answer = await vscode.window.showWarningMessage(
-                        `关闭组 "${item.group.name}" 的所有窗口？这将关闭该组内所有已打开的项目窗口（${item.group.projects.length} 个）。`,
-                        "是",
-                        "否",
-                    );
-
-                    if (answer === "是") {
-                        await closeGroupWindows(item.group.projects);
-                    }
-                }
             },
         ),
     );
@@ -346,261 +509,6 @@ export function activate(context: vscode.ExtensionContext) {
     // 延迟函数
     function sleep(ms: number): Promise<void> {
         return new Promise((resolve) => setTimeout(resolve, ms));
-    }
-
-    // 关闭组内所有窗口的函数
-    async function closeGroupWindows(projectPaths: string[]) {
-        await vscode.window.withProgress(
-            {
-                location: vscode.ProgressLocation.Notification,
-                title: "正在关闭组内窗口",
-                cancellable: false,
-            },
-            async (progress) => {
-                let closed = 0;
-                const total = projectPaths.length;
-
-                try {
-                    // 获取所有打开的窗口
-                    const openWindows = await getOpenWindows();
-
-                    // 匹配组内的项目路径
-                    const windowsToClose = openWindows.filter(window =>
-                        projectPaths.some(projectPath =>
-                            window.includes(projectPath) ||
-                            normalizeUri(window) === normalizeUri(projectPath)
-                        )
-                    );
-
-                    if (windowsToClose.length === 0) {
-                        vscode.window.showInformationMessage(
-                            `组内没有已打开的窗口`
-                        );
-                        return;
-                    }
-
-                    progress.report({
-                        message: `找到 ${windowsToClose.length} 个已打开的窗口`,
-                    });
-
-                    // 逐个关闭窗口
-                    for (let i = 0; i < windowsToClose.length; i++) {
-                        const window = windowsToClose[i];
-                        progress.report({
-                            message: `正在关闭 ${i + 1}/${windowsToClose.length}`,
-                            increment: 100 / windowsToClose.length,
-                        });
-
-                        try {
-                            await closeWindow(window);
-                            closed++;
-                            await sleep(500); // 延迟避免过快
-                        } catch (error) {
-                            console.error(`关闭窗口失败: ${window}`, error);
-                        }
-                    }
-
-                    vscode.window.showInformationMessage(
-                        `已关闭 ${closed}/${windowsToClose.length} 个窗口`
-                    );
-                } catch (error) {
-                    vscode.window.showErrorMessage(
-                        `关闭窗口失败: ${error}`
-                    );
-                }
-            }
-        );
-    }
-
-    // 重载组内所有窗口的函数
-    async function reloadGroupWindows(projectPaths: string[]) {
-        await vscode.window.withProgress(
-            {
-                location: vscode.ProgressLocation.Notification,
-                title: "正在重载组内窗口",
-                cancellable: false,
-            },
-            async (progress) => {
-                let reloaded = 0;
-
-                try {
-                    // 获取所有打开的窗口
-                    const openWindows = await getOpenWindows();
-
-                    // 匹配组内的项目路径
-                    const windowsToReload = openWindows.filter(window =>
-                        projectPaths.some(projectPath =>
-                            window.includes(projectPath) ||
-                            normalizeUri(window) === normalizeUri(projectPath)
-                        )
-                    );
-
-                    if (windowsToReload.length === 0) {
-                        vscode.window.showInformationMessage(
-                            `组内没有已打开的窗口`
-                        );
-                        return;
-                    }
-
-                    progress.report({
-                        message: `找到 ${windowsToReload.length} 个已打开的窗口`,
-                    });
-
-                    // 逐个重载窗口
-                    for (let i = 0; i < windowsToReload.length; i++) {
-                        const window = windowsToReload[i];
-                        progress.report({
-                            message: `正在重载 ${i + 1}/${windowsToReload.length}`,
-                            increment: 100 / windowsToReload.length,
-                        });
-
-                        try {
-                            await reloadWindow(window);
-                            reloaded++;
-                            await sleep(500); // 延迟避免过快
-                        } catch (error) {
-                            console.error(`重载窗口失败: ${window}`, error);
-                        }
-                    }
-
-                    vscode.window.showInformationMessage(
-                        `已重载 ${reloaded}/${windowsToReload.length} 个窗口`
-                    );
-                } catch (error) {
-                    vscode.window.showErrorMessage(
-                        `重载窗口失败: ${error}`
-                    );
-                }
-            }
-        );
-    }
-
-    // 获取所有打开的 VS Code 窗口
-    async function getOpenWindows(): Promise<string[]> {
-        const platform = process.platform;
-
-        try {
-            if (platform === 'darwin') {
-                // macOS: 使用 AppleScript
-                const script = `
-                    tell application "System Events"
-                        set vscodeWindows to {}
-                        repeat with proc in (every process whose name contains "Code")
-                            repeat with win in (every window of proc)
-                                set end of vscodeWindows to name of win
-                            end repeat
-                        end repeat
-                        return vscodeWindows
-                    end tell
-                `;
-                const { stdout } = await execPromise(`osascript -e '${script.replace(/'/g, "'\"'\"'")}'`);
-                return stdout.trim().split(', ').filter(w => w.length > 0);
-            } else if (platform === 'win32') {
-                // Windows: 使用 PowerShell
-                const script = `
-                    Get-Process | Where-Object {$_.ProcessName -like "*Code*"} |
-                    ForEach-Object {$_.MainWindowTitle} |
-                    Where-Object {$_ -ne ""}
-                `;
-                const { stdout } = await execPromise(`powershell -Command "${script}"`);
-                return stdout.trim().split('\n').filter(w => w.length > 0);
-            } else {
-                // Linux: 使用 wmctrl 或 xdotool
-                try {
-                    const { stdout } = await execPromise(`wmctrl -l | grep -i code | awk '{$1=$2=$3=""; print $0}' | sed 's/^[ \\t]*//'`);
-                    return stdout.trim().split('\n').filter(w => w.length > 0);
-                } catch {
-                    // 如果 wmctrl 不可用，尝试 xdotool
-                    const { stdout } = await execPromise(`xdotool search --class code getwindowname %@`);
-                    return stdout.trim().split('\n').filter(w => w.length > 0);
-                }
-            }
-        } catch (error) {
-            console.error('获取窗口列表失败:', error);
-            return [];
-        }
-    }
-
-    // 关闭指定的窗口
-    async function closeWindow(windowTitle: string): Promise<void> {
-        const platform = process.platform;
-
-        if (platform === 'darwin') {
-            // macOS: 使用 AppleScript
-            const script = `
-                tell application "System Events"
-                    repeat with proc in (every process whose name contains "Code")
-                        repeat with win in (every window of proc)
-                            if name of win is "${windowTitle.replace(/"/g, '\\"')}" then
-                                click button 1 of win
-                                return
-                            end if
-                        end repeat
-                    end repeat
-                end tell
-            `;
-            await execPromise(`osascript -e '${script.replace(/'/g, "'\"'\"'")}'`);
-        } else if (platform === 'win32') {
-            // Windows: 使用 PowerShell
-            const script = `
-                Get-Process | Where-Object {$_.MainWindowTitle -eq "${windowTitle.replace(/"/g, '`"')}"} |
-                ForEach-Object {$_.CloseMainWindow()}
-            `;
-            await execPromise(`powershell -Command "${script}"`);
-        } else {
-            // Linux: 使用 wmctrl
-            await execPromise(`wmctrl -c "${windowTitle.replace(/"/g, '\\"')}"`);
-        }
-    }
-
-    // 重载指定的窗口
-    async function reloadWindow(windowTitle: string): Promise<void> {
-        const platform = process.platform;
-
-        if (platform === 'darwin') {
-            // macOS: 使用 AppleScript 发送 Cmd+R
-            const script = `
-                tell application "System Events"
-                    repeat with proc in (every process whose name contains "Code")
-                        repeat with win in (every window of proc)
-                            if name of win is "${windowTitle.replace(/"/g, '\\"')}" then
-                                set frontmost of proc to true
-                                tell proc
-                                    keystroke "r" using command down
-                                end tell
-                                return
-                            end if
-                        end repeat
-                    end repeat
-                end tell
-            `;
-            await execPromise(`osascript -e '${script.replace(/'/g, "'\"'\"'")}'`);
-        } else if (platform === 'win32') {
-            // Windows: 使用 PowerShell 发送 Ctrl+R
-            const script = `
-                Add-Type -AssemblyName System.Windows.Forms
-                $proc = Get-Process | Where-Object {$_.MainWindowTitle -eq "${windowTitle.replace(/"/g, '`"')}"} | Select-Object -First 1
-                if ($proc) {
-                    $null = [System.Windows.Forms.SendKeys]::SendWait("^r")
-                }
-            `;
-            await execPromise(`powershell -Command "${script}"`);
-        } else {
-            // Linux: 使用 xdotool 发送 Ctrl+R
-            const windowId = await execPromise(`xdotool search --name "${windowTitle.replace(/"/g, '\\"')}" | head -1`);
-            if (windowId.stdout.trim()) {
-                await execPromise(`xdotool key --window ${windowId.stdout.trim()} ctrl+r`);
-            }
-        }
-    }
-
-    // 标准化 URI 用于比较
-    function normalizeUri(uri: string): string {
-        // 移除 vscode-remote:// 前缀
-        if (uri.startsWith('vscode-remote://')) {
-            return uri.substring('vscode-remote://'.length);
-        }
-        return uri;
     }
 }
 
