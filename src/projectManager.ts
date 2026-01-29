@@ -29,17 +29,25 @@ export class ProjectManager {
         // 尝试从 Project Manager 加载项目
         const projectManagerProjects = await this.loadFromProjectManager();
 
-        // 为每个项目识别类型
+        // 使用 Map 根据 path 去重，保留后出现的（最新的）
+        const projectMap = new Map<string, Partial<Project>>();
+
         for (const project of projectManagerProjects) {
             if (!project.name || !project.path) {
                 continue; // 跳过无效项目
             }
 
-            const projectType = this.detectProjectType(project.path);
+            // 保留后出现的项目（覆盖之前的）
+            projectMap.set(project.path, project);
+        }
+
+        // 为每个项目识别类型
+        for (const project of projectMap.values()) {
+            const projectType = this.detectProjectType(project.path!);
 
             this.projects.push({
-                name: project.name,
-                path: project.path,
+                name: project.name!,
+                path: project.path!,
                 type: projectType,
                 paths: project.paths || [],
                 tags: project.tags || [],
@@ -269,7 +277,7 @@ export class ProjectManager {
         }
 
         try {
-            // 转换为 Project Manager 格式，保留所有字段
+            // 直接保存当前管理的项目
             const config = this.projects.map((project) => ({
                 name: project.name,
                 rootPath: project.path,
@@ -288,6 +296,53 @@ export class ProjectManager {
             vscode.window.showErrorMessage(
                 `保存 Project Manager 配置失败: ${error}`,
             );
+        }
+    }
+
+    cleanDuplicates(): number {
+        const configPath = this.getProjectManagerConfigPath();
+        if (!configPath) {
+            return 0;
+        }
+
+        try {
+            const content = fs.readFileSync(configPath, "utf8");
+            const config = JSON.parse(content);
+
+            if (!Array.isArray(config)) {
+                return 0;
+            }
+
+            // 使用 Map 根据 rootPath 去重，保留后出现的
+            const projectMap = new Map<string, any>();
+            let duplicateCount = 0;
+
+            for (const item of config) {
+                if (item.rootPath) {
+                    if (projectMap.has(item.rootPath)) {
+                        duplicateCount++;
+                    }
+                    // 保留后出现的（最新修改的）
+                    projectMap.set(item.rootPath, item);
+                }
+            }
+
+            if (duplicateCount > 0) {
+                // 保存去重后的配置
+                const cleanedConfig = Array.from(projectMap.values());
+                fs.writeFileSync(
+                    configPath,
+                    JSON.stringify(cleanedConfig, null, 4),
+                    "utf8",
+                );
+            }
+
+            return duplicateCount;
+        } catch (error) {
+            vscode.window.showErrorMessage(
+                `清理重复项目失败: ${error}`,
+            );
+            return 0;
         }
     }
 

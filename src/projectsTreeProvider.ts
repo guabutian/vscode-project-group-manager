@@ -180,11 +180,12 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTree
 
     private groupByPath(projects: Project[]): (PathGroupTreeItem | ProjectTreeItem)[] {
         // 构建树形结构
-        const root = new PathNode('');
+        const root = new PathNode('', '');
 
         for (const project of projects) {
             const parts = project.name.split('/');
             let current = root;
+            let currentPath = '';
 
             for (let i = 0; i < parts.length; i++) {
                 const part = parts[i];
@@ -196,9 +197,10 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTree
                 } else {
                     // 中间部分，创建或获取子节点
                     if (!current.children.has(part)) {
-                        current.children.set(part, new PathNode(part));
+                        current.children.set(part, new PathNode(part, currentPath));
                     }
                     current = current.children.get(part)!;
+                    currentPath = current.fullPath;
                 }
             }
         }
@@ -245,8 +247,16 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTree
 class PathNode {
     children: Map<string, PathNode> = new Map();
     projects: Project[] = [];
+    fullPath: string = ''; // 存储完整路径
 
-    constructor(public name: string) {}
+    constructor(public name: string, parentPath: string = '') {
+        // 计算完整路径
+        if (parentPath) {
+            this.fullPath = parentPath + '/' + name;
+        } else {
+            this.fullPath = name;
+        }
+    }
 }
 
 export class GroupTreeItem extends vscode.TreeItem {

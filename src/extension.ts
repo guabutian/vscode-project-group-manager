@@ -31,6 +31,14 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(
             "devContainerGroups.refresh",
             async () => {
+                // 先清理重复项目
+                const duplicateCount = projectManager.cleanDuplicates();
+                if (duplicateCount > 0) {
+                    vscode.window.showInformationMessage(
+                        `已清理 ${duplicateCount} 个重复项目`
+                    );
+                }
+
                 await projectManager.loadProjects();
                 projectsProvider.refresh();
             },
@@ -367,6 +375,100 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
+    // 重命名路径节点
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.renamePathGroup",
+            async (item) => {
+                if (item && item.pathNode && item.label) {
+                    // 获取完整的路径前缀
+                    const oldPathPrefix = item.pathNode.fullPath;
+
+                    const newPathPrefix = await vscode.window.showInputBox({
+                        prompt: "输入新的路径名称",
+                        value: oldPathPrefix,
+                        placeHolder: "例如：devbox/ai",
+                        validateInput: (value) => {
+                            if (!value || value.trim().length === 0) {
+                                return "路径名称不能为空";
+                            }
+                            if (value === oldPathPrefix) {
+                                return "新路径名称与原路径名称相同";
+                            }
+                            if (value.includes('//')) {
+                                return "路径不能包含连续的斜杠";
+                            }
+                            return null;
+                        },
+                    });
+
+                    if (newPathPrefix) {
+                        // 收集该路径节点下的所有项目
+                        const affectedProjects = item.projects;
+
+                        if (affectedProjects.length === 0) {
+                            vscode.window.showWarningMessage("该路径下没有项目");
+                            return;
+                        }
+
+                        // 确认操作
+                        const answer = await vscode.window.showInformationMessage(
+                            `将重命名 ${affectedProjects.length} 个项目的路径前缀\n从 "${oldPathPrefix}" 改为 "${newPathPrefix}"`,
+                            { modal: true },
+                            "确定",
+                            "取消"
+                        );
+
+                        if (answer !== "确定") {
+                            return;
+                        }
+
+                        // 批量重命名项目
+                        let successCount = 0;
+                        let skippedCount = 0;
+
+                        for (const project of affectedProjects) {
+                            // 计算新的项目名称
+                            const oldName = project.name;
+                            let newName: string;
+
+                            // 使用不区分大小写的匹配
+                            const oldNameLower = oldName.toLowerCase();
+                            const oldPathPrefixLower = oldPathPrefix.toLowerCase();
+
+                            if (oldNameLower.startsWith(oldPathPrefixLower + '/')) {
+                                // 替换路径前缀（保留原始大小写的后续部分）
+                                newName = newPathPrefix + oldName.substring(oldPathPrefix.length);
+                            } else if (oldNameLower === oldPathPrefixLower) {
+                                // 如果项目名就是路径名
+                                newName = newPathPrefix;
+                            } else {
+                                // 跳过不匹配的项目
+                                skippedCount++;
+                                continue;
+                            }
+
+                            // 重命名项目
+                            const success = projectManager.renameProject(project.path, newName);
+                            if (success) {
+                                successCount++;
+                            }
+                        }
+
+                        // 刷新视图
+                        projectsProvider.refresh();
+                        groupsProvider.refresh();
+
+                        // 显示结果
+                        vscode.window.showInformationMessage(
+                            `成功重命名 ${successCount}/${affectedProjects.length} 个项目${skippedCount > 0 ? `（跳过 ${skippedCount} 个）` : ''}`
+                        );
+                    }
+                }
+            },
+        ),
+    );
+
     // 打开单个项目
     context.subscriptions.push(
         vscode.commands.registerCommand(
@@ -400,33 +502,6 @@ export function activate(context: vscode.ExtensionContext) {
                 } else {
                     vscode.window.showErrorMessage('未找到 Project Manager 配置文件');
                 }
-            },
-        ),
-    );
-
-    // 打开组配置文件（实际是打开 VS Code 的 globalState，这里用 JSON 编辑器显示）
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            "devContainerGroups.openGroupsConfig",
-            async () => {
-                // 获取所有组的数据
-                const groups = groupManager.getAllGroups();
-
-                // 创建临时 JSON 文件显示配置
-                const tempContent = JSON.stringify(groups, null, 2);
-
-                const doc = await vscode.workspace.openTextDocument({
-                    content: tempContent,
-                    language: 'json'
-                });
-
-                await vscode.window.showTextDocument(doc, {
-                    preview: false
-                });
-
-                vscode.window.showInformationMessage(
-                    '组配置存储在 VS Code globalState 中，这是只读预览。请使用界面操作来修改组配置。'
-                );
             },
         ),
     );
