@@ -35,9 +35,6 @@ export class GroupManager {
 
     getAllGroups(): ProjectGroup[] {
         return Array.from(this.groups.values()).sort((a, b) => {
-            // "all" 组始终排在最前面
-            if (a.name === 'all') return -1;
-            if (b.name === 'all') return 1;
             return a.name.localeCompare(b.name);
         });
     }
@@ -58,20 +55,11 @@ export class GroupManager {
     }
 
     deleteGroup(name: string): void {
-        if (name === 'all') {
-            vscode.window.showWarningMessage('不能删除 "all" 组');
-            return;
-        }
         this.groups.delete(name);
         this.saveGroups();
     }
 
     renameGroup(oldName: string, newName: string): boolean {
-        if (oldName === 'all') {
-            vscode.window.showWarningMessage('不能重命名 "all" 组');
-            return false;
-        }
-
         if (this.groups.has(newName)) {
             vscode.window.showWarningMessage(`组名 "${newName}" 已存在`);
             return false;

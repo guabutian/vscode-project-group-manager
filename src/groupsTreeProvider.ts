@@ -38,7 +38,7 @@ export class GroupsTreeProvider implements vscode.TreeDataProvider<GroupTreeItem
             const projectItems = element.group.projects
                 .map(projectPath => {
                     const project = allProjects.find(p => p.path === projectPath);
-                    if (!project) return null;
+                    if (!project) {return null;}
                     const isSelected = this.projectManager.isSelected(projectPath);
                     return new ProjectInGroupItem(project, element.group.name, isSelected);
                 })

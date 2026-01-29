@@ -49,6 +49,12 @@
         "category": "Project Groups"
       },
       {
+        "command": "devContainerGroups.clearSelection",
+        "title": "清除选中",
+        "icon": "$(clear-all)",
+        "category": "Project Groups"
+      },
+      {
         "command": "devContainerGroups.openGroup",
         "title": "打开组",
         "category": "Project Groups"
@@ -62,18 +68,6 @@
       {
         "command": "devContainerGroups.toggleProject",
         "title": "切换项目选中状态",
-        "category": "Project Groups"
-      },
-      {
-        "command": "devContainerGroups.selectAll",
-        "title": "全选",
-        "icon": "$(check-all)",
-        "category": "Project Groups"
-      },
-      {
-        "command": "devContainerGroups.clearSelection",
-        "title": "清除选择",
-        "icon": "$(clear-all)",
         "category": "Project Groups"
       },
       {
@@ -96,11 +90,6 @@
       {
         "command": "devContainerGroups.setViewModeByType",
         "title": "按类型分组",
-        "category": "Project Groups"
-      },
-      {
-        "command": "devContainerGroups.setViewModeByHost",
-        "title": "按机器分组",
         "category": "Project Groups"
       },
       {
@@ -178,29 +167,24 @@
           "group": "navigation@2"
         },
         {
-          "command": "devContainerGroups.selectAll",
+          "command": "devContainerGroups.openSelected",
           "when": "view == projectGroupsProjectsView",
           "group": "navigation@3"
         },
         {
-          "command": "devContainerGroups.clearSelection",
+          "command": "devContainerGroups.saveAsGroup",
           "when": "view == projectGroupsProjectsView",
           "group": "navigation@4"
         },
         {
-          "command": "devContainerGroups.openSelected",
+          "command": "devContainerGroups.clearSelection",
           "when": "view == projectGroupsProjectsView",
           "group": "navigation@5"
         },
         {
-          "command": "devContainerGroups.saveAsGroup",
-          "when": "view == projectGroupsProjectsView",
-          "group": "navigation@6"
-        },
-        {
           "command": "devContainerGroups.openProjectManagerConfig",
           "when": "view == projectGroupsProjectsView",
-          "group": "navigation@7"
+          "group": "navigation@6"
         }
       ],
       "projectGroups.viewModeSubmenu": [
@@ -213,12 +197,8 @@
           "group": "1_viewmode@2"
         },
         {
-          "command": "devContainerGroups.setViewModeByHost",
-          "group": "1_viewmode@3"
-        },
-        {
           "command": "devContainerGroups.setViewModeByPath",
-          "group": "1_viewmode@4"
+          "group": "1_viewmode@3"
         }
       ],
       "view/item/context": [

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ProjectManager, Project } from './projectManager';
 
-export type ViewMode = 'flat' | 'by-type' | 'by-host' | 'by-path';
+export type ViewMode = 'flat' | 'by-type' | 'by-path';
 
 export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTreeItem | GroupTreeItem | PathGroupTreeItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<ProjectTreeItem | GroupTreeItem | PathGroupTreeItem | undefined | null | void> = new vscode.EventEmitter<ProjectTreeItem | GroupTreeItem | PathGroupTreeItem | undefined | null | void>();
@@ -54,9 +54,6 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTree
             } else if (this.viewMode === 'by-type') {
                 // 按类型分组
                 return Promise.resolve(this.groupByType(projects));
-            } else if (this.viewMode === 'by-host') {
-                // 按机器分组
-                return Promise.resolve(this.groupByHost(projects));
             } else if (this.viewMode === 'by-path') {
                 // 按路径分组
                 return Promise.resolve(this.groupByPath(projects));
@@ -124,58 +121,6 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTree
                 groups.get(type)!,
                 type
             ));
-    }
-
-    private groupByHost(projects: Project[]): GroupTreeItem[] {
-        const groups = new Map<string, Project[]>();
-
-        for (const project of projects) {
-            let host = '本地机器';
-
-            if (project.path.startsWith('vscode-remote://')) {
-                // 解析远程 URI
-                const match = project.path.match(/vscode-remote:\/\/([^+]+)\+([^/]+)/);
-                if (match) {
-                    const [, type, hostInfo] = match;
-
-                    if (type === 'ssh-remote') {
-                        // SSH Remote: 提取主机名
-                        host = `SSH: ${hostInfo}`;
-                    } else if (type === 'dev-container') {
-                        // Dev Container: 提取容器信息
-                        const containerMatch = hostInfo.match(/([^/]+)/);
-                        if (containerMatch) {
-                            host = `Container: ${containerMatch[1]}`;
-                        } else {
-                            host = 'Dev Container';
-                        }
-                    } else if (type === 'wsl') {
-                        // WSL: 提取发行版名称
-                        host = `WSL: ${hostInfo}`;
-                    } else {
-                        host = `Remote: ${hostInfo}`;
-                    }
-                }
-            }
-
-            if (!groups.has(host)) {
-                groups.set(host, []);
-            }
-            groups.get(host)!.push(project);
-        }
-
-        // 本地机器排在最前面
-        const sortedHosts = Array.from(groups.keys()).sort((a, b) => {
-            if (a === '本地机器') return -1;
-            if (b === '本地机器') return 1;
-            return a.localeCompare(b);
-        });
-
-        return sortedHosts.map(host => new GroupTreeItem(
-            host,
-            groups.get(host)!,
-            'host'
-        ));
     }
 
     private groupByPath(projects: Project[]): (PathGroupTreeItem | ProjectTreeItem)[] {

@@ -220,10 +220,6 @@ export class ProjectManager {
         }
     }
 
-    selectAll(): void {
-        this.projects.forEach((p) => this.selectedPaths.add(p.path));
-    }
-
     clearSelection(): void {
         this.selectedPaths.clear();
     }

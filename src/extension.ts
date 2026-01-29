@@ -27,20 +27,26 @@ export function activate(context: vscode.ExtensionContext) {
 
     // 刷新项目列表
     context.subscriptions.push(
-        // 注册命令
         vscode.commands.registerCommand(
             "devContainerGroups.refresh",
             async () => {
                 // 先清理重复项目
                 const duplicateCount = projectManager.cleanDuplicates();
-                if (duplicateCount > 0) {
-                    vscode.window.showInformationMessage(
-                        `已清理 ${duplicateCount} 个重复项目`
-                    );
-                }
 
                 await projectManager.loadProjects();
                 projectsProvider.refresh();
+
+                // 显示刷新完成提示
+                const projectCount = projectManager.getAllProjects().length;
+                if (duplicateCount > 0) {
+                    vscode.window.showInformationMessage(
+                        `已重新加载 ${projectCount} 个项目（清理了 ${duplicateCount} 个重复项）`
+                    );
+                } else {
+                    vscode.window.showInformationMessage(
+                        `已重新加载 ${projectCount} 个项目`
+                    );
+                }
             },
         ),
     );
@@ -56,31 +62,6 @@ export function activate(context: vscode.ExtensionContext) {
                     projectsProvider.refresh();
                     groupsProvider.refresh(); // 同时刷新组合列表
                 }
-            },
-        ),
-    );
-
-    // 全选
-    context.subscriptions.push(
-        vscode.commands.registerCommand("devContainerGroups.selectAll", () => {
-            projectManager.selectAll();
-            projectsProvider.refresh();
-            groupsProvider.refresh(); // 同时刷新组合列表
-            vscode.window.showInformationMessage(
-                `已选中所有 ${projectManager.getAllProjects().length} 个项目`,
-            );
-        }),
-    );
-
-    // 清除选择
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            "devContainerGroups.clearSelection",
-            () => {
-                projectManager.clearSelection();
-                projectsProvider.refresh();
-                groupsProvider.refresh(); // 同时刷新组合列表
-                vscode.window.showInformationMessage("已清除所有选择");
             },
         ),
     );
@@ -105,6 +86,19 @@ export function activate(context: vscode.ExtensionContext) {
                 if (answer === "是") {
                     await openProjects(selected.map((p) => p.path));
                 }
+            },
+        ),
+    );
+
+    // 清除所有选中
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.clearSelection",
+            () => {
+                projectManager.clearSelection();
+                projectsProvider.refresh();
+                groupsProvider.refresh();
+                vscode.window.showInformationMessage("已清除所有选中");
             },
         ),
     );
@@ -289,15 +283,6 @@ export function activate(context: vscode.ExtensionContext) {
             "devContainerGroups.setViewModeByType",
             () => {
                 projectsProvider.setViewMode('by-type');
-            },
-        ),
-    );
-
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            "devContainerGroups.setViewModeByHost",
-            () => {
-                projectsProvider.setViewMode('by-host');
             },
         ),
     );
@@ -505,16 +490,6 @@ export function activate(context: vscode.ExtensionContext) {
             },
         ),
     );
-
-    // 首次激活时创建默认的 "all" 组
-    const allProjects = projectManager.getAllProjects();
-    if (allProjects.length > 0 && !groupManager.getGroup("all")) {
-        groupManager.saveGroup(
-            "all",
-            allProjects.map((p) => p.path),
-        );
-        groupsProvider.refresh();
-    }
 
     // 批量打开项目的核心函数
     async function openProjects(projectPaths: string[]) {
