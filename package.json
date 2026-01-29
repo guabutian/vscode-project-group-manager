@@ -1,7 +1,7 @@
 {
-  "name": "dev-container-group-manager",
-  "displayName": "Dev Container 项目组管理器",
-  "description": "批量打开 Dev Container 项目并支持分组管理",
+  "name": "project-group-manager",
+  "displayName": "Project Group Manager",
+  "description": "批量打开项目组（支持 Dev Container、SSH Remote、WSL 等）",
   "version": "0.0.1",
   "publisher": "your-publisher-name",
   "icon": "icon.png",
@@ -12,13 +12,17 @@
     "Other"
   ],
   "keywords": [
+    "project group",
     "dev container",
     "remote",
+    "ssh",
+    "wsl",
     "docker",
     "project manager",
     "workspace",
     "批量打开",
-    "项目组"
+    "项目组",
+    "远程开发"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -30,72 +34,72 @@
         "command": "devContainerGroups.refresh",
         "title": "刷新项目列表",
         "icon": "$(refresh)",
-        "category": "Dev Container Groups"
+        "category": "Project Groups"
       },
       {
         "command": "devContainerGroups.openSelected",
         "title": "打开选中的项目",
         "icon": "$(folder-opened)",
-        "category": "Dev Container Groups"
+        "category": "Project Groups"
       },
       {
         "command": "devContainerGroups.saveAsGroup",
         "title": "保存为组",
         "icon": "$(save)",
-        "category": "Dev Container Groups"
+        "category": "Project Groups"
       },
       {
         "command": "devContainerGroups.openGroup",
         "title": "打开组",
-        "category": "Dev Container Groups"
+        "category": "Project Groups"
       },
       {
         "command": "devContainerGroups.deleteGroup",
         "title": "删除组",
         "icon": "$(trash)",
-        "category": "Dev Container Groups"
+        "category": "Project Groups"
       },
       {
         "command": "devContainerGroups.reloadAllWindows",
-        "title": "重载所有 Dev Container 窗口",
+        "title": "重载所有窗口",
         "icon": "$(debug-restart)",
-        "category": "Dev Container Groups"
+        "category": "Project Groups"
       },
       {
         "command": "devContainerGroups.toggleProject",
         "title": "切换项目选中状态",
-        "category": "Dev Container Groups"
+        "category": "Project Groups"
       },
       {
         "command": "devContainerGroups.selectAll",
         "title": "全选",
         "icon": "$(check-all)",
-        "category": "Dev Container Groups"
+        "category": "Project Groups"
       },
       {
         "command": "devContainerGroups.clearSelection",
         "title": "清除选择",
         "icon": "$(clear-all)",
-        "category": "Dev Container Groups"
+        "category": "Project Groups"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "devContainerGroups",
-          "title": "Dev Container Groups",
-          "icon": "$(server-environment)"
+          "id": "projectGroups",
+          "title": "Project Groups",
+          "icon": "$(folder-library)"
         }
       ]
     },
     "views": {
-      "devContainerGroups": [
+      "projectGroups": [
         {
-          "id": "devContainerProjectsView",
+          "id": "projectGroupsProjectsView",
           "name": "项目列表"
         },
         {
-          "id": "devContainerGroupsView",
+          "id": "projectGroupsGroupsView",
           "name": "保存的组"
         }
       ]
@@ -104,83 +108,83 @@
       "view/title": [
         {
           "command": "devContainerGroups.refresh",
-          "when": "view == devContainerProjectsView",
+          "when": "view == projectGroupsProjectsView",
           "group": "navigation@1"
         },
         {
           "command": "devContainerGroups.selectAll",
-          "when": "view == devContainerProjectsView",
+          "when": "view == projectGroupsProjectsView",
           "group": "navigation@2"
         },
         {
           "command": "devContainerGroups.clearSelection",
-          "when": "view == devContainerProjectsView",
+          "when": "view == projectGroupsProjectsView",
           "group": "navigation@3"
         },
         {
           "command": "devContainerGroups.openSelected",
-          "when": "view == devContainerProjectsView",
+          "when": "view == projectGroupsProjectsView",
           "group": "navigation@4"
         },
         {
           "command": "devContainerGroups.saveAsGroup",
-          "when": "view == devContainerProjectsView",
+          "when": "view == projectGroupsProjectsView",
           "group": "navigation@5"
         },
         {
           "command": "devContainerGroups.reloadAllWindows",
-          "when": "view == devContainerProjectsView",
+          "when": "view == projectGroupsProjectsView",
           "group": "navigation@6"
         }
       ],
       "view/item/context": [
         {
           "command": "devContainerGroups.openGroup",
-          "when": "view == devContainerGroupsView && viewItem == group",
+          "when": "view == projectGroupsGroupsView && viewItem == group",
           "group": "inline@1"
         },
         {
           "command": "devContainerGroups.deleteGroup",
-          "when": "view == devContainerGroupsView && viewItem == group",
+          "when": "view == projectGroupsGroupsView && viewItem == group",
           "group": "inline@2"
         }
       ]
     },
     "configuration": {
-      "title": "Dev Container Group Manager",
+      "title": "Project Group Manager",
       "properties": {
-        "devContainerGroups.openDelay": {
+        "projectGroups.openDelay": {
           "type": "number",
           "default": 2000,
           "minimum": 0,
           "maximum": 10000,
           "description": "每个项目打开之间的延迟（毫秒）"
         },
-        "devContainerGroups.batchSize": {
+        "projectGroups.batchSize": {
           "type": "number",
           "default": 3,
           "minimum": 1,
           "maximum": 10,
           "description": "每批打开的项目数量"
         },
-        "devContainerGroups.batchDelay": {
+        "projectGroups.batchDelay": {
           "type": "number",
           "default": 10000,
           "minimum": 0,
           "maximum": 60000,
           "description": "批次之间的延迟（毫秒）"
         },
-        "devContainerGroups.projectManagerPath": {
+        "projectGroups.projectManagerPath": {
           "type": "string",
           "default": "",
           "description": "Project Manager 配置文件的自定义路径（留空自动检测）"
         },
-        "devContainerGroups.showNotifications": {
+        "projectGroups.showNotifications": {
           "type": "boolean",
           "default": true,
           "description": "显示操作完成通知"
         },
-        "devContainerGroups.autoRefreshOnStartup": {
+        "projectGroups.autoRefreshOnStartup": {
           "type": "boolean",
           "default": true,
           "description": "启动时自动刷新项目列表"

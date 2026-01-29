@@ -1,11 +1,12 @@
-import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
+import * as vscode from "vscode";
 
 export interface Project {
     name: string;
     path: string;
+    type: 'local' | 'ssh-remote' | 'dev-container' | 'wsl' | 'unknown';
     hasDevContainer: boolean;
 }
 
@@ -25,33 +26,42 @@ export class ProjectManager {
         // 尝试从 Project Manager 加载项目
         const projectManagerProjects = await this.loadFromProjectManager();
 
-        // 过滤 Dev Container 项目
+        // 为每个项目识别类型
         for (const project of projectManagerProjects) {
-            if (this.isDevContainerProject(project.path)) {
-                this.projects.push({
-                    ...project,
-                    hasDevContainer: true
-                });
+            if (!project.name || !project.path) {
+                continue; // 跳过无效项目
             }
+
+            const projectType = this.detectProjectType(project.path);
+            const hasDevContainer = projectType === 'dev-container';
+
+            this.projects.push({
+                name: project.name,
+                path: project.path,
+                type: projectType,
+                hasDevContainer: hasDevContainer,
+            });
         }
 
         // 按名称排序
         this.projects.sort((a, b) => a.name.localeCompare(b.name));
     }
 
-    private async loadFromProjectManager(): Promise<Project[]> {
-        const projects: Project[] = [];
+    private async loadFromProjectManager(): Promise<Partial<Project>[]> {
+        const projects: Partial<Project>[] = [];
 
         // 查找 Project Manager 配置文件
         const configPath = this.getProjectManagerConfigPath();
 
         if (!configPath || !fs.existsSync(configPath)) {
-            vscode.window.showWarningMessage('未找到 Project Manager 配置。请安装 Project Manager 扩展。');
+            vscode.window.showWarningMessage(
+                "未找到 Project Manager 配置。请安装 Project Manager 扩展。",
+            );
             return projects;
         }
 
         try {
-            const content = fs.readFileSync(configPath, 'utf8');
+            const content = fs.readFileSync(configPath, "utf8");
             const config = JSON.parse(content);
 
             // 解析不同格式的项目配置
@@ -62,24 +72,15 @@ export class ProjectManager {
                         projects.push({
                             name: item.name || path.basename(item.rootPath),
                             path: item.rootPath,
-                            hasDevContainer: false
-                        });
-                    }
-                }
-            } else if (config.projects) {
-                // 新格式：包含 projects 数组的对象
-                for (const item of config.projects) {
-                    if (item.rootPath) {
-                        projects.push({
-                            name: item.name || path.basename(item.rootPath),
-                            path: item.rootPath,
-                            hasDevContainer: false
+                            hasDevContainer: false,
                         });
                     }
                 }
             }
         } catch (error) {
-            vscode.window.showErrorMessage(`加载 Project Manager 配置失败: ${error}`);
+            vscode.window.showErrorMessage(
+                `加载 Project Manager 配置失败: ${error}`,
+            );
         }
 
         return projects;
@@ -87,8 +88,8 @@ export class ProjectManager {
 
     private getProjectManagerConfigPath(): string | null {
         // 检查设置中的自定义路径
-        const config = vscode.workspace.getConfiguration('devContainerGroups');
-        const customPath = config.get<string>('projectManagerPath');
+        const config = vscode.workspace.getConfiguration("projectGroups");
+        const customPath = config.get<string>("projectManagerPath");
 
         if (customPath && fs.existsSync(customPath)) {
             return customPath;
@@ -98,13 +99,47 @@ export class ProjectManager {
         const homeDir = os.homedir();
         const possiblePaths = [
             // VS Code
-            path.join(homeDir, '.config', 'Code', 'User', 'globalStorage', 'alefragnani.project-manager', 'projects.json'),
+            path.join(
+                homeDir,
+                ".config",
+                "Code",
+                "User",
+                "globalStorage",
+                "alefragnani.project-manager",
+                "projects.json",
+            ),
             // VS Code Insiders
-            path.join(homeDir, '.config', 'Code - Insiders', 'User', 'globalStorage', 'alefragnani.project-manager', 'projects.json'),
+            path.join(
+                homeDir,
+                ".config",
+                "Code - Insiders",
+                "User",
+                "globalStorage",
+                "alefragnani.project-manager",
+                "projects.json",
+            ),
             // macOS
-            path.join(homeDir, 'Library', 'Application Support', 'Code', 'User', 'globalStorage', 'alefragnani.project-manager', 'projects.json'),
+            path.join(
+                homeDir,
+                "Library",
+                "Application Support",
+                "Code",
+                "User",
+                "globalStorage",
+                "alefragnani.project-manager",
+                "projects.json",
+            ),
             // Windows
-            path.join(homeDir, 'AppData', 'Roaming', 'Code', 'User', 'globalStorage', 'alefragnani.project-manager', 'projects.json'),
+            path.join(
+                homeDir,
+                "AppData",
+                "Roaming",
+                "Code",
+                "User",
+                "globalStorage",
+                "alefragnani.project-manager",
+                "projects.json",
+            ),
         ];
 
         for (const p of possiblePaths) {
@@ -121,38 +156,56 @@ export class ProjectManager {
             return false;
         }
 
-        const devcontainerPath = path.join(projectPath, '.devcontainer');
+        const devcontainerPath = path.join(projectPath, ".devcontainer");
         if (!fs.existsSync(devcontainerPath)) {
             return false;
         }
 
         // 检查是否存在 devcontainer.json 或 docker-compose.yml
-        const devcontainerJson = path.join(devcontainerPath, 'devcontainer.json');
-        const dockerCompose = path.join(devcontainerPath, 'docker-compose.yml');
+        const devcontainerJson = path.join(
+            devcontainerPath,
+            "devcontainer.json",
+        );
+        const dockerCompose = path.join(devcontainerPath, "docker-compose.yml");
 
         return fs.existsSync(devcontainerJson) || fs.existsSync(dockerCompose);
     }
 
     /**
-     * 判断是否为 Dev Container 项目
-     * 支持两种类型：
-     * 1. 本地项目：检查是否有 .devcontainer 目录
-     * 2. 远程项目：检查 URI 是否包含 dev-container
+     * 检测项目类型
+     * @param projectPath 项目路径
+     * @returns 项目类型
+     */
+    private detectProjectType(projectPath: string): Project['type'] {
+        // Dev Container 远程项目
+        if (projectPath.startsWith("vscode-remote://dev-container+")) {
+            return 'dev-container';
+        }
+
+        // SSH Remote 项目
+        if (projectPath.startsWith("vscode-remote://ssh-remote+")) {
+            return 'ssh-remote';
+        }
+
+        // WSL 项目
+        if (projectPath.startsWith("vscode-remote://wsl+")) {
+            return 'wsl';
+        }
+
+        // 其他远程类型
+        if (projectPath.startsWith("vscode-remote://")) {
+            return 'unknown';
+        }
+
+        // 本地项目
+        return 'local';
+    }
+
+    /**
+     * 判断是否为 Dev Container 项目（已废弃，保留用于兼容）
      */
     private isDevContainerProject(projectPath: string): boolean {
-        // 检查是否为 Dev Container 远程 URI
-        // 格式：vscode-remote://dev-container+...
-        if (projectPath.startsWith('vscode-remote://dev-container+')) {
-            return true;
-        }
-
-        // 对于本地项目，检查 .devcontainer 目录
-        if (!projectPath.startsWith('vscode-remote://')) {
-            return this.hasDevContainer(projectPath);
-        }
-
-        // 其他远程项目（如 SSH Remote）不是 Dev Container
-        return false;
+        return this.detectProjectType(projectPath) === 'dev-container';
     }
 
     getAllProjects(): Project[] {
@@ -160,7 +213,7 @@ export class ProjectManager {
     }
 
     getSelectedProjects(): Project[] {
-        return this.projects.filter(p => this.selectedPaths.has(p.path));
+        return this.projects.filter((p) => this.selectedPaths.has(p.path));
     }
 
     isSelected(projectPath: string): boolean {
@@ -176,7 +229,7 @@ export class ProjectManager {
     }
 
     selectAll(): void {
-        this.projects.forEach(p => this.selectedPaths.add(p.path));
+        this.projects.forEach((p) => this.selectedPaths.add(p.path));
     }
 
     clearSelection(): void {
