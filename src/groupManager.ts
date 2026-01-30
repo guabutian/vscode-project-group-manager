@@ -129,4 +129,9 @@ export class GroupManager {
             }
         }
     }
+
+    clearAllGroups(): void {
+        this.groups.clear();
+        this.saveGroups();
+    }
 }

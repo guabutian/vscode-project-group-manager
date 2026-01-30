@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ProjectManager, Project } from './projectManager';
 
-export type ViewMode = 'flat' | 'by-type' | 'by-path';
+export type ViewMode = 'flat' | 'by-type' | 'by-path' | 'by-selection';
 
 export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTreeItem | GroupTreeItem | PathGroupTreeItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<ProjectTreeItem | GroupTreeItem | PathGroupTreeItem | undefined | null | void> = new vscode.EventEmitter<ProjectTreeItem | GroupTreeItem | PathGroupTreeItem | undefined | null | void>();
@@ -109,6 +109,9 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTree
             } else if (this.viewMode === 'by-path') {
                 // 按路径分组
                 return Promise.resolve(this.groupByPath(projects));
+            } else if (this.viewMode === 'by-selection') {
+                // 按选中状态分组
+                return Promise.resolve(this.groupBySelection(projects));
             }
         } else if (element instanceof GroupTreeItem) {
             // 展开分组，显示组内项目
@@ -173,6 +176,39 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTree
                 groups.get(type)!,
                 type
             ));
+    }
+
+    private groupBySelection(projects: Project[]): GroupTreeItem[] {
+        const selectedProjects: Project[] = [];
+        const unselectedProjects: Project[] = [];
+
+        for (const project of projects) {
+            if (this.projectManager.isSelected(project.path)) {
+                selectedProjects.push(project);
+            } else {
+                unselectedProjects.push(project);
+            }
+        }
+
+        const groups: GroupTreeItem[] = [];
+
+        if (selectedProjects.length > 0) {
+            groups.push(new GroupTreeItem(
+                '已选中',
+                selectedProjects,
+                'selected'
+            ));
+        }
+
+        if (unselectedProjects.length > 0) {
+            groups.push(new GroupTreeItem(
+                '未选中',
+                unselectedProjects,
+                'unselected'
+            ));
+        }
+
+        return groups;
     }
 
     private groupByPath(projects: Project[]): (PathGroupTreeItem | ProjectTreeItem)[] {

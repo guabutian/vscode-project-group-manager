@@ -140,6 +140,61 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
+    // 搜索项目
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.searchProjects",
+            async () => {
+                const allProjects = projectManager.getAllProjects();
+
+                if (allProjects.length === 0) {
+                    vscode.window.showWarningMessage("没有可用的项目");
+                    return;
+                }
+
+                // 创建快速选择项
+                const quickPickItems = allProjects.map(project => ({
+                    label: project.name,
+                    description: project.path,
+                    detail: project.type,
+                    picked: projectManager.isSelected(project.path),
+                    project: project
+                }));
+
+                // 显示快速选择（支持多选）
+                const selected = await vscode.window.showQuickPick(quickPickItems, {
+                    placeHolder: "搜索并选择项目（支持多选）",
+                    matchOnDescription: true,
+                    matchOnDetail: true,
+                    canPickMany: true
+                });
+
+                if (selected) {
+                    // 清除当前选中
+                    projectManager.clearSelection();
+
+                    // 选中用户选择的项目
+                    for (const item of selected) {
+                        projectManager.toggleSelection(item.project.path);
+                    }
+
+                    // 如果有选中的项目，自动切换到按选中状态分组模式
+                    if (selected.length > 0) {
+                        projectsProvider.setViewMode('by-selection');
+                    }
+
+                    // 刷新视图
+                    projectsProvider.refresh();
+                    groupsProvider.refresh();
+
+                    vscode.window.showInformationMessage(
+                        `已选中 ${selected.length} 个项目`
+                    );
+                }
+            },
+        ),
+    );
+
     // 保存为组
     context.subscriptions.push(
         vscode.commands.registerCommand(
@@ -152,28 +207,54 @@ export function activate(context: vscode.ExtensionContext) {
                 }
 
                 const groupName = await vscode.window.showInputBox({
-                    prompt: "输入组名",
+                    prompt: "输入组名（如果组名已存在则添加到该组合）",
                     placeHolder: "例如：microservices-order",
                     validateInput: (value) => {
                         if (!value || value.trim().length === 0) {
                             return "组名不能为空";
-                        }
-                        if (groupManager.getGroup(value)) {
-                            return "组名已存在";
                         }
                         return null;
                     },
                 });
 
                 if (groupName) {
-                    groupManager.saveGroup(
-                        groupName,
-                        selected.map((p) => p.path),
-                    );
-                    groupsProvider.refresh();
-                    vscode.window.showInformationMessage(
-                        `组 "${groupName}" 已保存，包含 ${selected.length} 个项目`,
-                    );
+                    const existingGroup = groupManager.getGroup(groupName);
+
+                    if (existingGroup) {
+                        // 组合已存在，合并项目列表
+                        const newPaths = selected.map((p) => p.path);
+                        const mergedPaths = [...existingGroup.projects, ...newPaths];
+                        // 去重
+                        const uniquePaths = Array.from(new Set(mergedPaths));
+
+                        groupManager.saveGroup(
+                            groupName,
+                            uniquePaths,
+                            existingGroup.weight
+                        );
+                        groupsProvider.refresh();
+
+                        const addedCount = uniquePaths.length - existingGroup.projects.length;
+                        if (addedCount > 0) {
+                            vscode.window.showInformationMessage(
+                                `已向组合 "${groupName}" 添加 ${addedCount} 个新项目，当前共 ${uniquePaths.length} 个项目`
+                            );
+                        } else {
+                            vscode.window.showInformationMessage(
+                                `所选项目已全部在组合 "${groupName}" 中`
+                            );
+                        }
+                    } else {
+                        // 新建组合
+                        groupManager.saveGroup(
+                            groupName,
+                            selected.map((p) => p.path),
+                        );
+                        groupsProvider.refresh();
+                        vscode.window.showInformationMessage(
+                            `组 "${groupName}" 已保存，包含 ${selected.length} 个项目`,
+                        );
+                    }
                 }
             },
         ),
@@ -194,6 +275,35 @@ export function activate(context: vscode.ExtensionContext) {
                     if (answer === "是") {
                         await openProjects(item.group.projects);
                     }
+                }
+            },
+        ),
+    );
+
+    // 清空所有组合
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.clearAllGroups",
+            async () => {
+                const allGroups = groupManager.getAllGroups();
+
+                if (allGroups.length === 0) {
+                    vscode.window.showInformationMessage("没有组合需要清空");
+                    return;
+                }
+
+                const answer = await vscode.window.showWarningMessage(
+                    `确定要清空所有组合吗？这将删除 ${allGroups.length} 个组合，此操作不可恢复！`,
+                    "确定",
+                    "取消"
+                );
+
+                if (answer === "确定") {
+                    groupManager.clearAllGroups();
+                    groupsProvider.refresh();
+                    vscode.window.showInformationMessage(
+                        `已清空所有组合（共 ${allGroups.length} 个）`
+                    );
                 }
             },
         ),
@@ -498,6 +608,15 @@ export function activate(context: vscode.ExtensionContext) {
             "devContainerGroups.setViewModeByPath",
             () => {
                 projectsProvider.setViewMode('by-path');
+            },
+        ),
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "devContainerGroups.setViewModeBySelection",
+            () => {
+                projectsProvider.setViewMode('by-selection');
             },
         ),
     );
