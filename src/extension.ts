@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 import { GroupManager } from "./groupManager"; //组管理
-import { GroupsTreeProvider } from "./groupsTreeProvider"; // 组管理的icon
+import { GroupsTreeProvider } from "./groupsTreeProvider"; // 组合管理的树形视图提供者
 import { ProjectManager } from "./projectManager"; // 项目管理
-import { ProjectsTreeProvider } from "./projectsTreeProvider"; // 项目管理的icon
+import { ProjectsTreeProvider } from "./projectsTreeProvider"; // 项目管理的树形视图提供者
 
 // 插件激活时调用
 export function activate(context: vscode.ExtensionContext) {
@@ -15,20 +15,22 @@ export function activate(context: vscode.ExtensionContext) {
     const projectsProvider = new ProjectsTreeProvider(projectManager, context);
     const groupsProvider = new GroupsTreeProvider(groupManager, projectManager);
 
-    // 注册树形视图
+    // 注册项目树形视图
     const projectsTreeView = vscode.window.createTreeView(
         "projectGroupsProjectsView",
         {
             treeDataProvider: projectsProvider,
-            showCollapseAll: true
-        }
+            showCollapseAll: true,
+        },
     );
+
+    // 注册组合树形视图
     const groupsTreeView = vscode.window.createTreeView(
         "projectGroupsGroupsView",
         {
             treeDataProvider: groupsProvider,
-            showCollapseAll: true
-        }
+            showCollapseAll: true,
+        },
     );
 
     // 刷新项目列表
@@ -46,11 +48,11 @@ export function activate(context: vscode.ExtensionContext) {
                 const projectCount = projectManager.getAllProjects().length;
                 if (duplicateCount > 0) {
                     vscode.window.showInformationMessage(
-                        `已重新加载 ${projectCount} 个项目（清理了 ${duplicateCount} 个重复项）`
+                        `已重新加载 ${projectCount} 个项目（清理了 ${duplicateCount} 个重复项）`,
                     );
                 } else {
                     vscode.window.showInformationMessage(
-                        `已重新加载 ${projectCount} 个项目`
+                        `已重新加载 ${projectCount} 个项目`,
                     );
                 }
             },
@@ -85,18 +87,21 @@ export function activate(context: vscode.ExtensionContext) {
 
                     try {
                         // 查找项目的树项
-                        const treeItem = await projectsProvider.findProjectTreeItem(item.project.path);
+                        const treeItem =
+                            await projectsProvider.findProjectTreeItem(
+                                item.project.path,
+                            );
 
                         if (treeItem) {
                             // 使用 reveal 定位到项目
                             await projectsTreeView.reveal(treeItem, {
                                 select: true,
                                 focus: true,
-                                expand: true
+                                expand: true,
                             });
                         }
                     } catch (error) {
-                        console.log('无法定位到项目:', error);
+                        console.log("无法定位到项目:", error);
                     }
                 }
             },
@@ -153,21 +158,24 @@ export function activate(context: vscode.ExtensionContext) {
                 }
 
                 // 创建快速选择项
-                const quickPickItems = allProjects.map(project => ({
+                const quickPickItems = allProjects.map((project) => ({
                     label: project.name,
                     description: project.path,
                     detail: project.type,
                     picked: projectManager.isSelected(project.path),
-                    project: project
+                    project: project,
                 }));
 
                 // 显示快速选择（支持多选）
-                const selected = await vscode.window.showQuickPick(quickPickItems, {
-                    placeHolder: "搜索并选择项目（支持多选）",
-                    matchOnDescription: true,
-                    matchOnDetail: true,
-                    canPickMany: true
-                });
+                const selected = await vscode.window.showQuickPick(
+                    quickPickItems,
+                    {
+                        placeHolder: "搜索并选择项目（支持多选）",
+                        matchOnDescription: true,
+                        matchOnDetail: true,
+                        canPickMany: true,
+                    },
+                );
 
                 if (selected) {
                     // 清除当前选中
@@ -180,7 +188,7 @@ export function activate(context: vscode.ExtensionContext) {
 
                     // 如果有选中的项目，自动切换到按选中状态分组模式
                     if (selected.length > 0) {
-                        projectsProvider.setViewMode('by-selection');
+                        projectsProvider.setViewMode("by-selection");
                     }
 
                     // 刷新视图
@@ -188,7 +196,7 @@ export function activate(context: vscode.ExtensionContext) {
                     groupsProvider.refresh();
 
                     vscode.window.showInformationMessage(
-                        `已选中 ${selected.length} 个项目`
+                        `已选中 ${selected.length} 个项目`,
                     );
                 }
             },
@@ -223,25 +231,29 @@ export function activate(context: vscode.ExtensionContext) {
                     if (existingGroup) {
                         // 组合已存在，合并项目列表
                         const newPaths = selected.map((p) => p.path);
-                        const mergedPaths = [...existingGroup.projects, ...newPaths];
+                        const mergedPaths = [
+                            ...existingGroup.projects,
+                            ...newPaths,
+                        ];
                         // 去重
                         const uniquePaths = Array.from(new Set(mergedPaths));
 
                         groupManager.saveGroup(
                             groupName,
                             uniquePaths,
-                            existingGroup.weight
+                            existingGroup.weight,
                         );
                         groupsProvider.refresh();
 
-                        const addedCount = uniquePaths.length - existingGroup.projects.length;
+                        const addedCount =
+                            uniquePaths.length - existingGroup.projects.length;
                         if (addedCount > 0) {
                             vscode.window.showInformationMessage(
-                                `已向组合 "${groupName}" 添加 ${addedCount} 个新项目，当前共 ${uniquePaths.length} 个项目`
+                                `已向组合 "${groupName}" 添加 ${addedCount} 个新项目，当前共 ${uniquePaths.length} 个项目`,
                             );
                         } else {
                             vscode.window.showInformationMessage(
-                                `所选项目已全部在组合 "${groupName}" 中`
+                                `所选项目已全部在组合 "${groupName}" 中`,
                             );
                         }
                     } else {
@@ -295,14 +307,14 @@ export function activate(context: vscode.ExtensionContext) {
                 const answer = await vscode.window.showWarningMessage(
                     `确定要清空所有组合吗？这将删除 ${allGroups.length} 个组合，此操作不可恢复！`,
                     "确定",
-                    "取消"
+                    "取消",
                 );
 
                 if (answer === "确定") {
                     groupManager.clearAllGroups();
                     groupsProvider.refresh();
                     vscode.window.showInformationMessage(
-                        `已清空所有组合（共 ${allGroups.length} 个）`
+                        `已清空所有组合（共 ${allGroups.length} 个）`,
                     );
                 }
             },
@@ -331,38 +343,49 @@ export function activate(context: vscode.ExtensionContext) {
                     if (item.group.projects.length > 0) {
                         const firstProjectPath = item.group.projects[0];
                         const allProjects = projectManager.getAllProjects();
-                        const firstProject = allProjects.find(p => p.path === firstProjectPath);
+                        const firstProject = allProjects.find(
+                            (p) => p.path === firstProjectPath,
+                        );
 
                         if (firstProject) {
                             // 根据当前视图模式找到对应的树项
                             const viewMode = projectsProvider.getViewMode();
 
                             // 等待视图刷新完成
-                            await new Promise(resolve => setTimeout(resolve, 100));
+                            await new Promise((resolve) =>
+                                setTimeout(resolve, 100),
+                            );
 
                             // 尝试展开并定位到项目
                             try {
-                                if (viewMode === 'flat') {
+                                if (viewMode === "flat") {
                                     // 平铺模式：直接定位到项目
-                                    const projectItem = new (await import('./projectsTreeProvider')).ProjectTreeItem(
+                                    const projectItem = new (
+                                        await import("./projectsTreeProvider")
+                                    ).ProjectTreeItem(
                                         firstProject,
-                                        projectManager.isSelected(firstProject.path)
+                                        projectManager.isSelected(
+                                            firstProject.path,
+                                        ),
                                     );
-                                    await projectsTreeView.reveal(projectItem, { select: true, focus: true });
-                                } else if (viewMode === 'by-type') {
+                                    await projectsTreeView.reveal(projectItem, {
+                                        select: true,
+                                        focus: true,
+                                    });
+                                } else if (viewMode === "by-type") {
                                     // 按类型分组：先展开类型组，再定位到项目
                                     // 这里需要更复杂的逻辑来找到父节点
-                                } else if (viewMode === 'by-path') {
+                                } else if (viewMode === "by-path") {
                                     // 按路径分组：需要展开路径层级
                                 }
                             } catch (error) {
-                                console.log('无法定位到项目:', error);
+                                console.log("无法定位到项目:", error);
                             }
                         }
                     }
 
                     vscode.window.showInformationMessage(
-                        `已在项目列表中选中组 "${item.group.name}" 的 ${item.group.projects.length} 个项目`
+                        `已在项目列表中选中组 "${item.group.name}" 的 ${item.group.projects.length} 个项目`,
                     );
                 }
             },
@@ -418,7 +441,10 @@ export function activate(context: vscode.ExtensionContext) {
                     });
 
                     if (newName) {
-                        const success = groupManager.renameGroup(item.group.name, newName);
+                        const success = groupManager.renameGroup(
+                            item.group.name,
+                            newName,
+                        );
                         if (success) {
                             groupsProvider.refresh();
                             vscode.window.showInformationMessage(
@@ -464,7 +490,11 @@ export function activate(context: vscode.ExtensionContext) {
 
                     if (newName) {
                         // 复制项目列表和权重分
-                        groupManager.saveGroup(newName, [...item.group.projects], item.group.weight);
+                        groupManager.saveGroup(
+                            newName,
+                            [...item.group.projects],
+                            item.group.weight,
+                        );
                         groupsProvider.refresh();
                         vscode.window.showInformationMessage(
                             `已复制组 "${item.group.name}" 为 "${newName}"（包含 ${item.group.projects.length} 个项目）`,
@@ -495,7 +525,7 @@ export function activate(context: vscode.ExtensionContext) {
                                 return "权重分不能为负数";
                             }
                             return null;
-                        }
+                        },
                     });
 
                     if (input !== undefined) {
@@ -503,12 +533,12 @@ export function activate(context: vscode.ExtensionContext) {
                         groupManager.setGroupWeight(item.group.name, weight);
                         groupsProvider.refresh();
                         vscode.window.showInformationMessage(
-                            `组 "${item.group.name}" 的权重分已设置为 ${weight}`
+                            `组 "${item.group.name}" 的权重分已设置为 ${weight}`,
                         );
                     }
                 }
-            }
-        )
+            },
+        ),
     );
 
     // 从组合中移除项目
@@ -520,19 +550,22 @@ export function activate(context: vscode.ExtensionContext) {
                     const answer = await vscode.window.showWarningMessage(
                         `从组合 "${item.groupName}" 中移除项目 "${item.project.name}"？`,
                         "是",
-                        "否"
+                        "否",
                     );
 
                     if (answer === "是") {
-                        groupManager.removeProjectFromGroup(item.groupName, item.project.path);
+                        groupManager.removeProjectFromGroup(
+                            item.groupName,
+                            item.project.path,
+                        );
                         groupsProvider.refresh();
                         vscode.window.showInformationMessage(
-                            `已从组合 "${item.groupName}" 中移除项目 "${item.project.name}"`
+                            `已从组合 "${item.groupName}" 中移除项目 "${item.project.name}"`,
                         );
                     }
                 }
-            }
-        )
+            },
+        ),
     );
 
     // 添加项目到组合
@@ -545,43 +578,55 @@ export function activate(context: vscode.ExtensionContext) {
                     const allGroups = groupManager.getAllGroups();
 
                     if (allGroups.length === 0) {
-                        vscode.window.showWarningMessage("没有可用的组合，请先创建组合");
+                        vscode.window.showWarningMessage(
+                            "没有可用的组合，请先创建组合",
+                        );
                         return;
                     }
 
                     // 创建快速选择项
-                    const quickPickItems = allGroups.map(group => ({
+                    const quickPickItems = allGroups.map((group) => ({
                         label: group.name,
                         description: `${group.projects.length} 个项目`,
-                        detail: group.projects.includes(item.project.path) ? "✓ 已包含此项目" : undefined,
-                        group: group
+                        detail: group.projects.includes(item.project.path)
+                            ? "✓ 已包含此项目"
+                            : undefined,
+                        group: group,
                     }));
 
                     // 显示快速选择
-                    const selected = await vscode.window.showQuickPick(quickPickItems, {
-                        placeHolder: `选择要添加到的组合（当前项目：${item.project.name}）`,
-                        matchOnDescription: true,
-                        matchOnDetail: true
-                    });
+                    const selected = await vscode.window.showQuickPick(
+                        quickPickItems,
+                        {
+                            placeHolder: `选择要添加到的组合（当前项目：${item.project.name}）`,
+                            matchOnDescription: true,
+                            matchOnDetail: true,
+                        },
+                    );
 
                     if (selected) {
                         // 检查项目是否已经在组合中
-                        if (selected.group.projects.includes(item.project.path)) {
+                        if (
+                            selected.group.projects.includes(item.project.path)
+                        ) {
                             vscode.window.showInformationMessage(
-                                `项目 "${item.project.name}" 已经在组合 "${selected.group.name}" 中`
+                                `项目 "${item.project.name}" 已经在组合 "${selected.group.name}" 中`,
                             );
                         } else {
                             // 添加项目到组合
-                            groupManager.addProjectToGroup(selected.group.name, item.project.path);
+                            groupManager.addProjectToGroup(
+                                selected.group.name,
+                                item.project.path,
+                            );
                             groupsProvider.refresh();
                             vscode.window.showInformationMessage(
-                                `已将项目 "${item.project.name}" 添加到组合 "${selected.group.name}"`
+                                `已将项目 "${item.project.name}" 添加到组合 "${selected.group.name}"`,
                             );
                         }
                     }
                 }
-            }
-        )
+            },
+        ),
     );
 
     // 切换显示模式
@@ -589,7 +634,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(
             "devContainerGroups.setViewModeFlat",
             () => {
-                projectsProvider.setViewMode('flat');
+                projectsProvider.setViewMode("flat");
             },
         ),
     );
@@ -598,7 +643,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(
             "devContainerGroups.setViewModeByType",
             () => {
-                projectsProvider.setViewMode('by-type');
+                projectsProvider.setViewMode("by-type");
             },
         ),
     );
@@ -607,7 +652,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(
             "devContainerGroups.setViewModeByPath",
             () => {
-                projectsProvider.setViewMode('by-path');
+                projectsProvider.setViewMode("by-path");
             },
         ),
     );
@@ -616,7 +661,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(
             "devContainerGroups.setViewModeBySelection",
             () => {
-                projectsProvider.setViewMode('by-selection');
+                projectsProvider.setViewMode("by-selection");
             },
         ),
     );
@@ -643,7 +688,10 @@ export function activate(context: vscode.ExtensionContext) {
                     });
 
                     if (newName) {
-                        const success = projectManager.renameProject(item.project.path, newName);
+                        const success = projectManager.renameProject(
+                            item.project.path,
+                            newName,
+                        );
                         if (success) {
                             projectsProvider.refresh();
                             groupsProvider.refresh(); // 同时刷新组合列表
@@ -665,13 +713,18 @@ export function activate(context: vscode.ExtensionContext) {
                 if (item && item.project) {
                     const answer = await vscode.window.showWarningMessage(
                         `确定要从 Project Manager 中删除项目 "${item.project.name}"？`,
-                        { modal: true, detail: "这将从 Project Manager 配置中移除该项目，但不会删除项目文件。" },
+                        {
+                            modal: true,
+                            detail: "这将从 Project Manager 配置中移除该项目，但不会删除项目文件。",
+                        },
                         "删除",
                         "取消",
                     );
 
                     if (answer === "删除") {
-                        const success = projectManager.deleteProject(item.project.path);
+                        const success = projectManager.deleteProject(
+                            item.project.path,
+                        );
                         if (success) {
                             projectsProvider.refresh();
                             groupsProvider.refresh(); // 同时刷新组合列表
@@ -705,7 +758,7 @@ export function activate(context: vscode.ExtensionContext) {
                             if (value === oldPathPrefix) {
                                 return "新路径名称与原路径名称相同";
                             }
-                            if (value.includes('//')) {
+                            if (value.includes("//")) {
                                 return "路径不能包含连续的斜杠";
                             }
                             return null;
@@ -717,17 +770,20 @@ export function activate(context: vscode.ExtensionContext) {
                         const affectedProjects = item.projects;
 
                         if (affectedProjects.length === 0) {
-                            vscode.window.showWarningMessage("该路径下没有项目");
+                            vscode.window.showWarningMessage(
+                                "该路径下没有项目",
+                            );
                             return;
                         }
 
                         // 确认操作
-                        const answer = await vscode.window.showInformationMessage(
-                            `将重命名 ${affectedProjects.length} 个项目的路径前缀\n从 "${oldPathPrefix}" 改为 "${newPathPrefix}"`,
-                            { modal: true },
-                            "确定",
-                            "取消"
-                        );
+                        const answer =
+                            await vscode.window.showInformationMessage(
+                                `将重命名 ${affectedProjects.length} 个项目的路径前缀\n从 "${oldPathPrefix}" 改为 "${newPathPrefix}"`,
+                                { modal: true },
+                                "确定",
+                                "取消",
+                            );
 
                         if (answer !== "确定") {
                             return;
@@ -744,11 +800,18 @@ export function activate(context: vscode.ExtensionContext) {
 
                             // 使用不区分大小写的匹配
                             const oldNameLower = oldName.toLowerCase();
-                            const oldPathPrefixLower = oldPathPrefix.toLowerCase();
+                            const oldPathPrefixLower =
+                                oldPathPrefix.toLowerCase();
 
-                            if (oldNameLower.startsWith(oldPathPrefixLower + '/')) {
+                            if (
+                                oldNameLower.startsWith(
+                                    oldPathPrefixLower + "/",
+                                )
+                            ) {
                                 // 替换路径前缀（保留原始大小写的后续部分）
-                                newName = newPathPrefix + oldName.substring(oldPathPrefix.length);
+                                newName =
+                                    newPathPrefix +
+                                    oldName.substring(oldPathPrefix.length);
                             } else if (oldNameLower === oldPathPrefixLower) {
                                 // 如果项目名就是路径名
                                 newName = newPathPrefix;
@@ -759,7 +822,10 @@ export function activate(context: vscode.ExtensionContext) {
                             }
 
                             // 重命名项目
-                            const success = projectManager.renameProject(project.path, newName);
+                            const success = projectManager.renameProject(
+                                project.path,
+                                newName,
+                            );
                             if (success) {
                                 successCount++;
                             }
@@ -771,7 +837,7 @@ export function activate(context: vscode.ExtensionContext) {
 
                         // 显示结果
                         vscode.window.showInformationMessage(
-                            `成功重命名 ${successCount}/${affectedProjects.length} 个项目${skippedCount > 0 ? `（跳过 ${skippedCount} 个）` : ''}`
+                            `成功重命名 ${successCount}/${affectedProjects.length} 个项目${skippedCount > 0 ? `（跳过 ${skippedCount} 个）` : ""}`,
                         );
                     }
                 }
@@ -810,7 +876,9 @@ export function activate(context: vscode.ExtensionContext) {
                     const uri = vscode.Uri.file(configPath);
                     await vscode.window.showTextDocument(uri);
                 } else {
-                    vscode.window.showErrorMessage('未找到 Project Manager 配置文件');
+                    vscode.window.showErrorMessage(
+                        "未找到 Project Manager 配置文件",
+                    );
                 }
             },
         ),
