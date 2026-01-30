@@ -293,10 +293,6 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
-    /**
-     * 命令：在项目列表中选中组内的项目
-     * 将组内的所有项目在项目列表视图中标记为选中状态
-     */
     // 在项目列表中选中组内的项目
     context.subscriptions.push(
         vscode.commands.registerCommand(
@@ -324,6 +320,7 @@ export function activate(context: vscode.ExtensionContext) {
                         );
 
                         if (firstProject) {
+                            // 根据当前视图模式找到对应的树项
                             const viewMode = projectsProvider.getViewMode();
 
                             // 等待视图刷新完成
@@ -348,7 +345,8 @@ export function activate(context: vscode.ExtensionContext) {
                                         focus: true,
                                     });
                                 } else if (viewMode === "by-type") {
-                                    // 按类型分组：需要展开类型组
+                                    // 按类型分组：先展开类型组，再定位到项目
+                                    // 这里需要更复杂的逻辑来找到父节点
                                 } else if (viewMode === "by-path") {
                                     // 按路径分组：需要展开路径层级
                                 }
@@ -543,7 +541,6 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // 添加项目到组合
-    // 添加项目到组合
     context.subscriptions.push(
         vscode.commands.registerCommand(
             "projectGroupManager.addProjectToGroup",
@@ -604,9 +601,7 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
-    // ==================== 视图模式命令 ====================
-
-    // 平铺显示项目
+    // 切换显示模式
     context.subscriptions.push(
         vscode.commands.registerCommand(
             "projectGroupManager.setViewModeFlat",
@@ -616,7 +611,7 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
-    // 按类型分组显示
+    // 按类型显示项目
     context.subscriptions.push(
         vscode.commands.registerCommand(
             "projectGroupManager.setViewModeByType",
@@ -626,7 +621,7 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
-    // 按路径分组显示
+    // 按路径显示项目
     context.subscriptions.push(
         vscode.commands.registerCommand(
             "projectGroupManager.setViewModeByPath",
@@ -636,7 +631,7 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
-    // 按选中状态分组显示
+    // 按选择与否显示项目
     context.subscriptions.push(
         vscode.commands.registerCommand(
             "projectGroupManager.setViewModeBySelection",
@@ -645,8 +640,6 @@ export function activate(context: vscode.ExtensionContext) {
             },
         ),
     );
-
-    // ==================== 项目编辑命令 ====================
 
     // 重命名项目
     context.subscriptions.push(
@@ -676,7 +669,7 @@ export function activate(context: vscode.ExtensionContext) {
                         );
                         if (success) {
                             projectsProvider.refresh();
-                            groupsProvider.refresh();
+                            groupsProvider.refresh(); // 同时刷新组合列表
                             vscode.window.showInformationMessage(
                                 `项目 "${item.project.name}" 已重命名为 "${newName}"`,
                             );
@@ -709,7 +702,7 @@ export function activate(context: vscode.ExtensionContext) {
                         );
                         if (success) {
                             projectsProvider.refresh();
-                            groupsProvider.refresh();
+                            groupsProvider.refresh(); // 同时刷新组合列表
                             vscode.window.showInformationMessage(
                                 `项目 "${item.project.name}" 已删除`,
                             );
@@ -720,12 +713,13 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
-    // 重命名路径节点（批量重命名路径下的所有项目）
+    // 重命名路径节点
     context.subscriptions.push(
         vscode.commands.registerCommand(
             "projectGroupManager.renamePathGroup",
             async (item) => {
                 if (item && item.pathNode && item.label) {
+                    // 获取完整的路径前缀
                     const oldPathPrefix = item.pathNode.fullPath;
 
                     const newPathPrefix = await vscode.window.showInputBox({
@@ -747,6 +741,7 @@ export function activate(context: vscode.ExtensionContext) {
                     });
 
                     if (newPathPrefix) {
+                        // 收集该路径节点下的所有项目
                         const affectedProjects = item.projects;
 
                         if (affectedProjects.length === 0) {
@@ -774,6 +769,7 @@ export function activate(context: vscode.ExtensionContext) {
                         let skippedCount = 0;
 
                         for (const project of affectedProjects) {
+                            // 计算新的项目名称
                             const oldName = project.name;
                             let newName: string;
 
@@ -787,12 +783,12 @@ export function activate(context: vscode.ExtensionContext) {
                                     oldPathPrefixLower + "/",
                                 )
                             ) {
-                                // 替换路径前缀
+                                // 替换路径前缀（保留原始大小写的后续部分）
                                 newName =
                                     newPathPrefix +
                                     oldName.substring(oldPathPrefix.length);
                             } else if (oldNameLower === oldPathPrefixLower) {
-                                // 项目名就是路径名
+                                // 如果项目名就是路径名
                                 newName = newPathPrefix;
                             } else {
                                 // 跳过不匹配的项目
@@ -863,9 +859,7 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
-    // ==================== 辅助函数 ====================
-
-    // 批量打开项目（带进度条和延迟控制）
+    // 批量打开项目
     async function openProjects(projectPaths: string[]) {
         const config = vscode.workspace.getConfiguration("projectGroups");
         const openDelay = config.get<number>("openDelay", 2000);
