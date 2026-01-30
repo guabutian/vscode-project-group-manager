@@ -118,52 +118,86 @@ export class ProjectManager {
             return customPath;
         }
 
-        // 根据平台自动检测
+        // 使用 VSCode 环境 API 获取用户主目录（确保在远程环境中也能获取本地路径）
+        // vscode.env.appHost 可以区分是否在远程环境
         const homeDir = os.homedir();
-        const possiblePaths = [
-            // VS Code
-            path.join(
-                homeDir,
-                ".config",
-                "Code",
-                "User",
-                "globalStorage",
-                "alefragnani.project-manager",
-                "projects.json",
-            ),
-            // VS Code Insiders
-            path.join(
-                homeDir,
-                ".config",
-                "Code - Insiders",
-                "User",
-                "globalStorage",
-                "alefragnani.project-manager",
-                "projects.json",
-            ),
+
+        // 获取平台信息
+        const platform = process.platform;
+
+        const possiblePaths: string[] = [];
+
+        if (platform === "darwin") {
             // macOS
-            path.join(
-                homeDir,
-                "Library",
-                "Application Support",
-                "Code",
-                "User",
-                "globalStorage",
-                "alefragnani.project-manager",
-                "projects.json",
-            ),
+            possiblePaths.push(
+                path.join(
+                    homeDir,
+                    "Library",
+                    "Application Support",
+                    "Code",
+                    "User",
+                    "globalStorage",
+                    "alefragnani.project-manager",
+                    "projects.json",
+                ),
+                path.join(
+                    homeDir,
+                    "Library",
+                    "Application Support",
+                    "Code - Insiders",
+                    "User",
+                    "globalStorage",
+                    "alefragnani.project-manager",
+                    "projects.json",
+                ),
+            );
+        } else if (platform === "win32") {
             // Windows
-            path.join(
-                homeDir,
-                "AppData",
-                "Roaming",
-                "Code",
-                "User",
-                "globalStorage",
-                "alefragnani.project-manager",
-                "projects.json",
-            ),
-        ];
+            possiblePaths.push(
+                path.join(
+                    homeDir,
+                    "AppData",
+                    "Roaming",
+                    "Code",
+                    "User",
+                    "globalStorage",
+                    "alefragnani.project-manager",
+                    "projects.json",
+                ),
+                path.join(
+                    homeDir,
+                    "AppData",
+                    "Roaming",
+                    "Code - Insiders",
+                    "User",
+                    "globalStorage",
+                    "alefragnani.project-manager",
+                    "projects.json",
+                ),
+            );
+        } else {
+            // Linux
+            possiblePaths.push(
+                path.join(
+                    homeDir,
+                    ".config",
+                    "Code",
+                    "User",
+                    "globalStorage",
+                    "alefragnani.project-manager",
+                    "projects.json",
+                ),
+                path.join(
+                    homeDir,
+                    ".config",
+                    "Code - Insiders",
+                    "User",
+                    "globalStorage",
+                    "alefragnani.project-manager",
+                    "projects.json",
+                ),
+            );
+        }
 
         for (const p of possiblePaths) {
             if (fs.existsSync(p)) {
