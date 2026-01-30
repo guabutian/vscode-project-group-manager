@@ -188,8 +188,8 @@
 
 ## 🔗 相关链接
 
-- [GitHub 仓库](https://github.com/your-username/project-group-manager)
-- [问题反馈](https://github.com/your-username/project-group-manager/issues)
+- [GitHub 仓库](https://github.com/guabutian/vscode-project-group-manager)
+- [问题反馈](https://github.com/guabutian/vscode-project-group-manager/issues)
 - [Project Manager 扩展](https://marketplace.visualstudio.com/items?itemName=alefragnani.project-manager)
 
 ---
