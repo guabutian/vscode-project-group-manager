@@ -1,6 +1,6 @@
 # Project Group Manager
 
-一个强大的 VS Code 扩展，用于批量管理和打开项目。支持本地项目、Dev Container、SSH Remote、WSL 等多种项目类型，让你轻松管理大量项目。
+一个强大的 VS Code 扩展，用于批量管理和批量打开项目，支持本地项目、Dev Container、SSH Remote、WSL 等多种项目类型，让你轻松管理大量项目
 
 ## ✨ 功能特性
 
@@ -36,28 +36,29 @@
 ### 基础使用
 
 1. **查看项目列表**
-   - 点击侧边栏的 Project Groups 图标
-   - 在"项目列表"视图中查看所有项目
+    - 点击侧边栏的 Project Groups 图标
+    - 在"项目列表"视图中查看所有项目
 
 2. **选择项目**
-   - 点击项目前的复选框勾选项目
-   - 可以勾选多个项目
+    - 点击项目前的复选框勾选项目
+    - 可以勾选多个项目
 
 3. **保存为组**
-   - 勾选需要的项目后，点击工具栏的"保存为组"按钮
-   - 输入组名称
-   - 组会出现在"组合列表"视图中
+    - 勾选需要的项目后，点击工具栏的"保存为组"按钮
+    - 输入组名称
+    - 组会出现在"组合列表"视图中
 
 4. **打开项目组**
-   - 在"组合列表"中右键点击组
-   - 选择"打开组"
-   - 所有项目会按配置的延迟依次打开
+    - 在"组合列表"中右键点击组
+    - 选择"打开组"
+    - 所有项目会按配置的延迟依次打开
 
 ### 高级功能
 
 #### 视图模式切换
 
 点击"项目列表"工具栏的"显示模式"按钮，可以选择：
+
 - **平铺展示**：所有项目平铺显示
 - **按类型分组**：按项目类型（本地、Dev Container、SSH、WSL）分组
 - **按路径分组**：按项目路径分组
@@ -66,6 +67,7 @@
 #### 项目操作
 
 在项目上右键可以：
+
 - **打开项目**：在新窗口打开单个项目
 - **重命名**：修改项目显示名称
 - **添加到组合**：将项目添加到已有的组
@@ -74,6 +76,7 @@
 #### 组合操作
 
 在组合上右键可以：
+
 - **打开组**：批量打开组内所有项目
 - **重命名**：修改组名称
 - **复制**：复制组（创建副本）
@@ -90,23 +93,23 @@
 
 ```json
 {
-  // 每个项目打开之间的延迟（毫秒）
-  "projectGroups.openDelay": 2000,
+    // 每个项目打开之间的延迟（毫秒）
+    "projectGroups.openDelay": 2000,
 
-  // 每批打开的项目数量
-  "projectGroups.batchSize": 3,
+    // 每批打开的项目数量
+    "projectGroups.batchSize": 3,
 
-  // 批次之间的延迟（毫秒）
-  "projectGroups.batchDelay": 10000,
+    // 批次之间的延迟（毫秒）
+    "projectGroups.batchDelay": 10000,
 
-  // Project Manager 配置文件的自定义路径（留空自动检测）
-  "projectGroups.projectManagerPath": "",
+    // Project Manager 配置文件的自定义路径（留空自动检测）
+    "projectGroups.projectManagerPath": "",
 
-  // 显示操作完成通知
-  "projectGroups.showNotifications": true,
+    // 显示操作完成通知
+    "projectGroups.showNotifications": true,
 
-  // 启动时自动刷新项目列表
-  "projectGroups.autoRefreshOnStartup": true
+    // 启动时自动刷新项目列表
+    "projectGroups.autoRefreshOnStartup": true
 }
 ```
 
@@ -135,6 +138,7 @@
 ### 场景 1：微服务开发
 
 如果你在开发微服务项目，需要同时打开多个服务：
+
 1. 在 Project Manager 中添加所有微服务项目
 2. 在 Project Group Manager 中勾选需要的服务
 3. 保存为"微服务-开发环境"组
