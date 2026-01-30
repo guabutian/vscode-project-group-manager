@@ -2,10 +2,11 @@ import * as vscode from "vscode";
 import { GroupManager, ProjectGroup } from "./groupManager";
 import { ProjectManager } from "./projectManager";
 
-// 项目组合树视图提供器
+// 组合列表树视图提供器
 export class GroupsTreeProvider implements vscode.TreeDataProvider<
     GroupTreeItem | ProjectInGroupItem
 > {
+    // 树数据变化事件发射器
     private _onDidChangeTreeData: vscode.EventEmitter<
         GroupTreeItem | ProjectInGroupItem | undefined | null | void
     > = new vscode.EventEmitter<
@@ -20,19 +21,22 @@ export class GroupsTreeProvider implements vscode.TreeDataProvider<
         private projectManager: ProjectManager,
     ) {}
 
+    // 刷新树视图
     refresh(): void {
         this._onDidChangeTreeData.fire();
     }
 
+    // 获取树项
     getTreeItem(element: GroupTreeItem | ProjectInGroupItem): vscode.TreeItem {
         return element;
     }
 
+    // 获取子节点
     getChildren(
         element?: GroupTreeItem | ProjectInGroupItem,
     ): Thenable<(GroupTreeItem | ProjectInGroupItem)[]> {
         if (!element) {
-            // 返回所有组
+            // 根节点：返回所有组合
             const groups = this.groupManager.getAllGroups();
             return Promise.resolve(
                 groups.map((group) => {
@@ -44,7 +48,7 @@ export class GroupsTreeProvider implements vscode.TreeDataProvider<
                 }),
             );
         } else if (element instanceof GroupTreeItem) {
-            // 返回组内的项目
+            // 展开组合：返回组内的项目
             const allProjects = this.projectManager.getAllProjects();
             const projectItems = element.group.projects
                 .map((projectPath) => {
@@ -71,6 +75,7 @@ export class GroupsTreeProvider implements vscode.TreeDataProvider<
     }
 }
 
+// 组合树项
 export class GroupTreeItem extends vscode.TreeItem {
     constructor(
         public readonly group: ProjectGroup,
@@ -84,10 +89,9 @@ export class GroupTreeItem extends vscode.TreeItem {
 
         // 根据选中状态设置图标
         this.iconPath = this.getIcon();
-
-        // 不设置命令，避免单击/双击操作
     }
 
+    // 获取图标（根据选中状态）
     private getIcon(): vscode.ThemeIcon {
         // 如果有选中的项目，显示勾选图标
         if (this.selectedCount > 0) {
@@ -97,10 +101,11 @@ export class GroupTreeItem extends vscode.TreeItem {
             );
         }
 
-        // 所有组都使用 package 图标 (📦)
+        // 所有组都使用 package 图标
         return new vscode.ThemeIcon("package");
     }
 
+    // 构建描述文本（显示在组名右侧）
     private buildDescription(): string {
         const parts: string[] = [];
 
@@ -122,6 +127,7 @@ export class GroupTreeItem extends vscode.TreeItem {
         return parts.join(" ");
     }
 
+    // 构建提示文本（鼠标悬停时显示）
     private buildTooltip(): string {
         const lines: string[] = [];
         lines.push(`组名: ${this.group.name}`);
@@ -137,6 +143,7 @@ export class GroupTreeItem extends vscode.TreeItem {
     }
 }
 
+// 组内项目树项
 export class ProjectInGroupItem extends vscode.TreeItem {
     constructor(
         public readonly project: any,
@@ -160,6 +167,7 @@ export class ProjectInGroupItem extends vscode.TreeItem {
         };
     }
 
+    // 获取项目图标（根据类型和选中状态）
     private getIconForProject(): vscode.ThemeIcon {
         // 如果已选中，使用勾选图标
         if (this.isSelected) {
@@ -196,6 +204,7 @@ export class ProjectInGroupItem extends vscode.TreeItem {
         }
     }
 
+    // 构建描述文本（显示在项目名右侧）
     private buildDescription(): string {
         const parts: string[] = [];
 
@@ -204,11 +213,10 @@ export class ProjectInGroupItem extends vscode.TreeItem {
             parts.push("✓");
         }
 
-        // 不再显示类型标签
-
         return parts.join(" ");
     }
 
+    // 获取项目类型标签
     private getTypeLabel(): string {
         switch (this.project.type) {
             case "dev-container":
@@ -224,6 +232,7 @@ export class ProjectInGroupItem extends vscode.TreeItem {
         }
     }
 
+    // 构建提示文本（鼠标悬停时显示）
     private buildTooltip(): string {
         const lines: string[] = [];
         lines.push(`名称: ${this.project.name}`);

@@ -1,14 +1,14 @@
 import * as vscode from "vscode";
 import { Project, ProjectManager } from "./projectManager";
 
-// 项目树视图显示模式：平铺/按类型/按路径/按选择
+// 项目树视图显示模式
 export type ViewMode = "flat" | "by-type" | "by-path" | "by-selection";
 
-// 项目树视图提供器
+// 项目列表树视图提供器
 export class ProjectsTreeProvider implements vscode.TreeDataProvider<
     ProjectTreeItem | GroupTreeItem | PathGroupTreeItem
 > {
-    // 项目树视图数据变化事件发射器
+    // 树数据变化事件发射器
     private _onDidChangeTreeData: vscode.EventEmitter<
         | ProjectTreeItem
         | GroupTreeItem
@@ -25,7 +25,7 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<
         | void
     >();
 
-    // 项目树视图数据变化事件
+    // 树数据变化事件
     readonly onDidChangeTreeData: vscode.Event<
         | ProjectTreeItem
         | GroupTreeItem
@@ -35,16 +35,14 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<
         | void
     > = this._onDidChangeTreeData.event;
 
-    // 默认的项目树视图显示模式
+    // 当前显示模式
     private viewMode: ViewMode = "flat";
-    // vscode的扩展上下文
     private context: vscode.ExtensionContext;
 
     constructor(
         private projectManager: ProjectManager,
         context: vscode.ExtensionContext,
     ) {
-        // 获取上下文
         this.context = context;
         // 从持久化存储中加载上次的显示模式
         this.viewMode = this.context.globalState.get<ViewMode>(
@@ -53,10 +51,12 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<
         );
     }
 
+    // 刷新树视图
     refresh(): void {
         this._onDidChangeTreeData.fire();
     }
 
+    // 设置显示模式
     setViewMode(mode: ViewMode): void {
         this.viewMode = mode;
         // 保存到持久化存储
@@ -64,6 +64,7 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<
         this.refresh();
     }
 
+    // 获取当前显示模式
     getViewMode(): ViewMode {
         return this.viewMode;
     }
@@ -136,17 +137,19 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<
         return null;
     }
 
+    // 获取树项
     getTreeItem(
         element: ProjectTreeItem | GroupTreeItem | PathGroupTreeItem,
     ): vscode.TreeItem {
         return element;
     }
 
+    // 获取子节点
     getChildren(
         element?: ProjectTreeItem | GroupTreeItem | PathGroupTreeItem,
     ): Thenable<(ProjectTreeItem | GroupTreeItem | PathGroupTreeItem)[]> {
         if (!element) {
-            // 根节点
+            // 根节点：根据显示模式返回不同的视图
             const projects = this.projectManager.getAllProjects();
 
             if (this.viewMode === "flat") {
@@ -171,7 +174,7 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<
                 return Promise.resolve(this.groupBySelection(projects));
             }
         } else if (element instanceof GroupTreeItem) {
-            // 展开分组，显示组内项目
+            // 展开分组：显示组内项目
             return Promise.resolve(
                 element.projects.map(
                     (project) =>
@@ -207,6 +210,7 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<
         return Promise.resolve([]);
     }
 
+    // 按类型分组
     private groupByType(projects: Project[]): GroupTreeItem[] {
         const groups = new Map<string, Project[]>();
 
@@ -245,6 +249,7 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<
             );
     }
 
+    // 按选中状态分组
     private groupBySelection(projects: Project[]): GroupTreeItem[] {
         const selectedProjects: Project[] = [];
         const unselectedProjects: Project[] = [];
@@ -274,6 +279,7 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<
         return groups;
     }
 
+    // 按路径分组（构建树形结构）
     private groupByPath(
         projects: Project[],
     ): (PathGroupTreeItem | ProjectTreeItem)[] {
@@ -310,6 +316,7 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<
         return this.pathNodeToTreeItems(root);
     }
 
+    // 将路径节点转换为树项
     private pathNodeToTreeItems(
         node: PathNode,
     ): (PathGroupTreeItem | ProjectTreeItem)[] {
@@ -334,6 +341,7 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<
         return items;
     }
 
+    // 收集节点下的所有项目（递归）
     private collectAllProjects(node: PathNode): Project[] {
         const projects: Project[] = [...node.projects];
 
@@ -345,10 +353,11 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<
     }
 }
 
+// 路径节点类（用于构建路径树）
 class PathNode {
-    children: Map<string, PathNode> = new Map();
-    projects: Project[] = [];
-    fullPath: string = ""; // 存储完整路径
+    children: Map<string, PathNode> = new Map(); // 子节点
+    projects: Project[] = []; // 当前节点的项目
+    fullPath: string = ""; // 完整路径
 
     constructor(
         public name: string,
@@ -363,6 +372,7 @@ class PathNode {
     }
 }
 
+// 分组树项（用于类型分组和选中状态分组）
 export class GroupTreeItem extends vscode.TreeItem {
     constructor(
         public readonly label: string,
@@ -375,7 +385,7 @@ export class GroupTreeItem extends vscode.TreeItem {
         this.description = `${projects.length} 个项目`;
         this.contextValue = "projectGroup";
 
-        // 根据分组类型设置图标 - 不使用 emoji，只用 VS Code 图标
+        // 根据分组类型设置图标
         if (groupType === "local") {
             this.iconPath = new vscode.ThemeIcon("folder");
         } else if (groupType === "dev-container") {
@@ -401,6 +411,7 @@ export class GroupTreeItem extends vscode.TreeItem {
     }
 }
 
+// 路径分组树项
 export class PathGroupTreeItem extends vscode.TreeItem {
     constructor(
         public readonly label: string,
@@ -416,6 +427,7 @@ export class PathGroupTreeItem extends vscode.TreeItem {
     }
 }
 
+// 项目树项
 export class ProjectTreeItem extends vscode.TreeItem {
     constructor(
         public readonly project: Project,
@@ -438,9 +450,7 @@ export class ProjectTreeItem extends vscode.TreeItem {
         };
     }
 
-    /**
-     * 根据项目类型获取图标
-     */
+    // 获取项目图标（根据类型和选中状态）
     private getIconForProject(): vscode.ThemeIcon {
         // 如果已选中，使用勾选图标
         if (this.isSelected) {
@@ -453,32 +463,27 @@ export class ProjectTreeItem extends vscode.TreeItem {
         // 根据项目类型返回不同图标
         switch (this.project.type) {
             case "dev-container":
-                // Dev Container: 使用 🐳
                 return new vscode.ThemeIcon(
                     "server-environment",
                     new vscode.ThemeColor("charts.blue"),
                 );
 
             case "ssh-remote":
-                // SSH Remote: 使用 🖥️
                 return new vscode.ThemeIcon(
                     "vm",
                     new vscode.ThemeColor("charts.orange"),
                 );
 
             case "wsl":
-                // WSL: Linux 图标（紫色）
                 return new vscode.ThemeIcon(
                     "terminal-linux",
                     new vscode.ThemeColor("charts.purple"),
                 );
 
             case "local":
-                // 本地项目: 文件夹图标（默认颜色）
                 return new vscode.ThemeIcon("folder");
 
             default:
-                // 未知类型: 问号图标（灰色）
                 return new vscode.ThemeIcon(
                     "question",
                     new vscode.ThemeColor("charts.gray"),
@@ -486,20 +491,16 @@ export class ProjectTreeItem extends vscode.TreeItem {
         }
     }
 
-    /**
-     * 构建项目描述（显示在项目名称右侧）
-     */
+    // 构建描述文本（显示在项目名右侧）
     private buildDescription(): string {
-        // 只显示选中标记，不显示类型标签
+        // 只显示选中标记
         if (this.isSelected) {
             return "✓";
         }
         return "";
     }
 
-    /**
-     * 获取项目类型标签
-     */
+    // 获取项目类型标签
     private getTypeLabel(): string {
         switch (this.project.type) {
             case "dev-container":
@@ -515,9 +516,7 @@ export class ProjectTreeItem extends vscode.TreeItem {
         }
     }
 
-    /**
-     * 构建 tooltip（鼠标悬停提示）
-     */
+    // 构建提示文本（鼠标悬停时显示）
     private buildTooltip(): string {
         const lines: string[] = [];
 

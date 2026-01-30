@@ -3,21 +3,21 @@ import * as os from "os";
 import * as path from "path";
 import * as vscode from "vscode";
 
-// 项目定义
+// 项目接口定义
 export interface Project {
-    name: string;
-    path: string;
-    type: "local" | "ssh-remote" | "dev-container" | "wsl" | "unknown";
-    paths?: string[];
-    tags?: string[];
-    enabled?: boolean;
-    profile?: string;
+    name: string; // 项目名称
+    path: string; // 项目路径
+    type: "local" | "ssh-remote" | "dev-container" | "wsl" | "unknown"; // 项目类型
+    paths?: string[]; // 多路径项目
+    tags?: string[]; // 项目标签
+    enabled?: boolean; // 是否启用
+    profile?: string; // 配置文件
 }
 
-// 项目管理类
+// 项目管理器类
 export class ProjectManager {
-    private projects: Project[] = [];
-    private selectedPaths: Set<string> = new Set();
+    private projects: Project[] = []; // 所有项目列表
+    private selectedPaths: Set<string> = new Set(); // 选中的项目路径集合
     private context: vscode.ExtensionContext;
 
     constructor(context: vscode.ExtensionContext) {
@@ -25,13 +25,14 @@ export class ProjectManager {
         this.loadProjects();
     }
 
+    // 加载项目列表
     async loadProjects(): Promise<void> {
         this.projects = [];
 
-        // 尝试从 Project Manager 加载项目
+        // 从 Project Manager 加载项目
         const projectManagerProjects = await this.loadFromProjectManager();
 
-        // 使用 Map 根据 path 去重，保留后出现的（最新的）
+        // 使用 Map 根据 path 去重
         const projectMap = new Map<string, Partial<Project>>();
 
         for (const project of projectManagerProjects) {
@@ -62,6 +63,7 @@ export class ProjectManager {
         this.projects.sort((a, b) => a.name.localeCompare(b.name));
     }
 
+    // 从 Project Manager 配置文件加载项目
     private async loadFromProjectManager(): Promise<Partial<Project>[]> {
         const projects: Partial<Project>[] = [];
 
@@ -79,9 +81,8 @@ export class ProjectManager {
             const content = fs.readFileSync(configPath, "utf8");
             const config = JSON.parse(content);
 
-            // 解析不同格式的项目配置
+            // 解析项目配置（支持旧格式）
             if (Array.isArray(config)) {
-                // 旧格式：项目数组
                 for (const item of config) {
                     if (item.rootPath) {
                         projects.push({
@@ -107,6 +108,7 @@ export class ProjectManager {
         return projects;
     }
 
+    // 获取 Project Manager 配置文件路径
     private getProjectManagerConfigPath(): string | null {
         // 检查设置中的自定义路径
         const config = vscode.workspace.getConfiguration("projectGroups");
@@ -172,11 +174,7 @@ export class ProjectManager {
         return null;
     }
 
-    /**
-     * 检测项目类型
-     * @param projectPath 项目路径
-     * @returns 项目类型
-     */
+    // 检测项目类型（根据路径前缀判断）
     private detectProjectType(projectPath: string): Project["type"] {
         // Dev Container 远程项目
         if (projectPath.startsWith("vscode-remote://dev-container+")) {
@@ -202,18 +200,22 @@ export class ProjectManager {
         return "local";
     }
 
+    // 获取所有项目
     getAllProjects(): Project[] {
         return this.projects;
     }
 
+    // 获取选中的项目
     getSelectedProjects(): Project[] {
         return this.projects.filter((p) => this.selectedPaths.has(p.path));
     }
 
+    // 检查项目是否被选中
     isSelected(projectPath: string): boolean {
         return this.selectedPaths.has(projectPath);
     }
 
+    // 切换项目选中状态
     toggleSelection(projectPath: string): void {
         if (this.selectedPaths.has(projectPath)) {
             this.selectedPaths.delete(projectPath);
@@ -222,10 +224,12 @@ export class ProjectManager {
         }
     }
 
+    // 清除所有选中
     clearSelection(): void {
         this.selectedPaths.clear();
     }
 
+    // 重命名项目
     renameProject(oldPath: string, newName: string): boolean {
         const project = this.projects.find((p) => p.path === oldPath);
         if (!project) {
@@ -249,6 +253,7 @@ export class ProjectManager {
         return true;
     }
 
+    // 删除项目
     deleteProject(projectPath: string): boolean {
         const index = this.projects.findIndex((p) => p.path === projectPath);
         if (index === -1) {
@@ -267,6 +272,7 @@ export class ProjectManager {
         return true;
     }
 
+    // 保存项目列表到 Project Manager 配置文件
     private saveToProjectManager(): void {
         const configPath = this.getProjectManagerConfigPath();
         if (!configPath) {
@@ -275,7 +281,7 @@ export class ProjectManager {
         }
 
         try {
-            // 直接保存当前管理的项目
+            // 转换为 Project Manager 格式
             const config = this.projects.map((project) => ({
                 name: project.name,
                 rootPath: project.path,
@@ -297,6 +303,7 @@ export class ProjectManager {
         }
     }
 
+    // 清理重复的项目（根据路径去重）
     cleanDuplicates(): number {
         const configPath = this.getProjectManagerConfigPath();
         if (!configPath) {
@@ -311,7 +318,7 @@ export class ProjectManager {
                 return 0;
             }
 
-            // 使用 Map 根据 rootPath 去重，保留后出现的
+            // 使用 Map 根据 rootPath 去重
             const projectMap = new Map<string, any>();
             let duplicateCount = 0;
 
@@ -320,7 +327,7 @@ export class ProjectManager {
                     if (projectMap.has(item.rootPath)) {
                         duplicateCount++;
                     }
-                    // 保留后出现的（最新修改的）
+                    // 保留后出现的（最新的）
                     projectMap.set(item.rootPath, item);
                 }
             }
@@ -342,6 +349,7 @@ export class ProjectManager {
         }
     }
 
+    // 获取配置文件路径
     getConfigPath(): string | null {
         return this.getProjectManagerConfigPath();
     }
