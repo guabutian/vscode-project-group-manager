@@ -3,6 +3,7 @@ import * as os from "os";
 import * as path from "path";
 import * as vscode from "vscode";
 
+// 项目定义
 export interface Project {
     name: string;
     path: string;
@@ -13,6 +14,7 @@ export interface Project {
     profile?: string;
 }
 
+// 项目管理类
 export class ProjectManager {
     private projects: Project[] = [];
     private selectedPaths: Set<string> = new Set();
@@ -280,7 +282,7 @@ export class ProjectManager {
                 paths: project.paths || [],
                 tags: project.tags || [],
                 enabled: project.enabled !== undefined ? project.enabled : true,
-                profile: project.profile || ""
+                profile: project.profile || "",
             }));
 
             fs.writeFileSync(
@@ -335,9 +337,7 @@ export class ProjectManager {
 
             return duplicateCount;
         } catch (error) {
-            vscode.window.showErrorMessage(
-                `清理重复项目失败: ${error}`,
-            );
+            vscode.window.showErrorMessage(`清理重复项目失败: ${error}`);
             return 0;
         }
     }

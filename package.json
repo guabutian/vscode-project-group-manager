@@ -1,7 +1,7 @@
 {
   "name": "project-group-manager",
   "displayName": "Project Group Manager",
-  "description": "批量打开项目组（支持 本地、Dev Container、SSH Remote、WSL 等）",
+  "description": "批量打开项目组（支持 本地、Dev Container、SSH Remote、WSL 等）,依赖 ",
   "version": "0.0.1",
   "publisher": "your-publisher-name",
   "icon": "icon.png",
@@ -31,133 +31,133 @@
   "contributes": {
     "commands": [
       {
-        "command": "devContainerGroups.refresh",
+        "command": "projectGroupManager.refresh",
         "title": "刷新项目列表",
         "icon": "$(refresh)",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.openSelected",
+        "command": "projectGroupManager.openSelected",
         "title": "打开选中的项目",
         "icon": "$(folder-opened)",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.saveAsGroup",
+        "command": "projectGroupManager.saveAsGroup",
         "title": "保存为组",
         "icon": "$(save)",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.clearSelection",
+        "command": "projectGroupManager.clearSelection",
         "title": "清除选中",
         "icon": "$(clear-all)",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.searchProjects",
+        "command": "projectGroupManager.searchProjects",
         "title": "搜索项目",
         "icon": "$(search)",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.clearAllGroups",
+        "command": "projectGroupManager.clearAllGroups",
         "title": "清空所有组合",
         "icon": "$(trash)",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.openGroup",
+        "command": "projectGroupManager.openGroup",
         "title": "打开组",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.selectGroupInProjects",
+        "command": "projectGroupManager.selectGroupInProjects",
         "title": "在项目列表中选中",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.deleteGroup",
+        "command": "projectGroupManager.deleteGroup",
         "title": "删除组",
         "icon": "$(trash)",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.toggleProject",
+        "command": "projectGroupManager.toggleProject",
         "title": "切换项目选中状态",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.renameGroup",
+        "command": "projectGroupManager.renameGroup",
         "title": "重命名",
         "icon": "$(edit)",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.duplicateGroup",
+        "command": "projectGroupManager.duplicateGroup",
         "title": "复制",
         "icon": "$(copy)",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.setGroupWeight",
+        "command": "projectGroupManager.setGroupWeight",
         "title": "设置权重分",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.setViewModeFlat",
+        "command": "projectGroupManager.setViewModeFlat",
         "title": "平铺展示",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.setViewModeByType",
+        "command": "projectGroupManager.setViewModeByType",
         "title": "按类型分组",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.setViewModeByPath",
+        "command": "projectGroupManager.setViewModeByPath",
         "title": "按路径分组",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.setViewModeBySelection",
+        "command": "projectGroupManager.setViewModeBySelection",
         "title": "按选中状态分组",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.renameProject",
+        "command": "projectGroupManager.renameProject",
         "title": "重命名",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.deleteProject",
+        "command": "projectGroupManager.deleteProject",
         "title": "删除",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.removeProjectFromGroup",
+        "command": "projectGroupManager.removeProjectFromGroup",
         "title": "从组合中移除",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.addProjectToGroup",
+        "command": "projectGroupManager.addProjectToGroup",
         "title": "添加到组合",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.openProjectManagerConfig",
+        "command": "projectGroupManager.openProjectManagerConfig",
         "title": "编辑项目配置文件",
         "icon": "$(edit)",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.openProject",
+        "command": "projectGroupManager.openProject",
         "title": "打开项目",
         "icon": "$(folder-opened)",
         "category": "Project Groups"
       },
       {
-        "command": "devContainerGroups.renamePathGroup",
+        "command": "projectGroupManager.renamePathGroup",
         "title": "重命名路径",
         "icon": "$(edit)",
         "category": "Project Groups"
@@ -199,122 +199,122 @@
           "group": "navigation@1"
         },
         {
-          "command": "devContainerGroups.refresh",
+          "command": "projectGroupManager.refresh",
           "when": "view == projectGroupsProjectsView",
           "group": "navigation@2"
         },
         {
-          "command": "devContainerGroups.openSelected",
+          "command": "projectGroupManager.openSelected",
           "when": "view == projectGroupsProjectsView",
           "group": "navigation@3"
         },
         {
-          "command": "devContainerGroups.saveAsGroup",
+          "command": "projectGroupManager.saveAsGroup",
           "when": "view == projectGroupsProjectsView",
           "group": "navigation@4"
         },
         {
-          "command": "devContainerGroups.clearSelection",
+          "command": "projectGroupManager.clearSelection",
           "when": "view == projectGroupsProjectsView",
           "group": "navigation@5"
         },
         {
-          "command": "devContainerGroups.searchProjects",
+          "command": "projectGroupManager.searchProjects",
           "when": "view == projectGroupsProjectsView",
           "group": "navigation@6"
         },
         {
-          "command": "devContainerGroups.openProjectManagerConfig",
+          "command": "projectGroupManager.openProjectManagerConfig",
           "when": "view == projectGroupsProjectsView",
           "group": "navigation@7"
         },
         {
-          "command": "devContainerGroups.clearAllGroups",
+          "command": "projectGroupManager.clearAllGroups",
           "when": "view == projectGroupsGroupsView",
           "group": "navigation@1"
         }
       ],
       "projectGroups.viewModeSubmenu": [
         {
-          "command": "devContainerGroups.setViewModeFlat",
+          "command": "projectGroupManager.setViewModeFlat",
           "group": "1_viewmode@1"
         },
         {
-          "command": "devContainerGroups.setViewModeByType",
+          "command": "projectGroupManager.setViewModeByType",
           "group": "1_viewmode@2"
         },
         {
-          "command": "devContainerGroups.setViewModeByPath",
+          "command": "projectGroupManager.setViewModeByPath",
           "group": "1_viewmode@3"
         },
         {
-          "command": "devContainerGroups.setViewModeBySelection",
+          "command": "projectGroupManager.setViewModeBySelection",
           "group": "1_viewmode@4"
         }
       ],
       "view/item/context": [
         {
-          "command": "devContainerGroups.openGroup",
+          "command": "projectGroupManager.openGroup",
           "when": "view == projectGroupsGroupsView && viewItem == group",
           "group": "1_actions@1"
         },
         {
-          "command": "devContainerGroups.renameGroup",
+          "command": "projectGroupManager.renameGroup",
           "when": "view == projectGroupsGroupsView && viewItem == group",
           "group": "2_edit@1"
         },
         {
-          "command": "devContainerGroups.duplicateGroup",
+          "command": "projectGroupManager.duplicateGroup",
           "when": "view == projectGroupsGroupsView && viewItem == group",
           "group": "2_edit@2"
         },
         {
-          "command": "devContainerGroups.setGroupWeight",
+          "command": "projectGroupManager.setGroupWeight",
           "when": "view == projectGroupsGroupsView && viewItem == group",
           "group": "2_edit@3"
         },
         {
-          "command": "devContainerGroups.deleteGroup",
+          "command": "projectGroupManager.deleteGroup",
           "when": "view == projectGroupsGroupsView && viewItem == group",
           "group": "3_delete@1"
         },
         {
-          "command": "devContainerGroups.openProject",
+          "command": "projectGroupManager.openProject",
           "when": "view == projectGroupsGroupsView && viewItem == projectInGroup",
           "group": "1_actions@1"
         },
         {
-          "command": "devContainerGroups.renameProject",
+          "command": "projectGroupManager.renameProject",
           "when": "view == projectGroupsGroupsView && viewItem == projectInGroup",
           "group": "2_edit@1"
         },
         {
-          "command": "devContainerGroups.removeProjectFromGroup",
+          "command": "projectGroupManager.removeProjectFromGroup",
           "when": "view == projectGroupsGroupsView && viewItem == projectInGroup",
           "group": "3_delete@1"
         },
         {
-          "command": "devContainerGroups.renamePathGroup",
+          "command": "projectGroupManager.renamePathGroup",
           "when": "view == projectGroupsProjectsView && viewItem == pathGroup",
           "group": "2_edit@1"
         },
         {
-          "command": "devContainerGroups.openProject",
+          "command": "projectGroupManager.openProject",
           "when": "view == projectGroupsProjectsView && viewItem == project",
           "group": "1_actions@1"
         },
         {
-          "command": "devContainerGroups.renameProject",
+          "command": "projectGroupManager.renameProject",
           "when": "view == projectGroupsProjectsView && viewItem == project",
           "group": "2_edit@1"
         },
         {
-          "command": "devContainerGroups.addProjectToGroup",
+          "command": "projectGroupManager.addProjectToGroup",
           "when": "view == projectGroupsProjectsView && viewItem == project",
           "group": "2_edit@2"
         },
         {
-          "command": "devContainerGroups.deleteProject",
+          "command": "projectGroupManager.deleteProject",
           "when": "view == projectGroupsProjectsView && viewItem == project",
           "group": "3_delete@1"
         }

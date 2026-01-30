@@ -1,22 +1,56 @@
-import * as vscode from 'vscode';
-import { ProjectManager, Project } from './projectManager';
+import * as vscode from "vscode";
+import { Project, ProjectManager } from "./projectManager";
 
-export type ViewMode = 'flat' | 'by-type' | 'by-path' | 'by-selection';
+// 项目树视图显示模式：平铺/按类型/按路径/按选择
+export type ViewMode = "flat" | "by-type" | "by-path" | "by-selection";
 
-export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTreeItem | GroupTreeItem | PathGroupTreeItem> {
-    private _onDidChangeTreeData: vscode.EventEmitter<ProjectTreeItem | GroupTreeItem | PathGroupTreeItem | undefined | null | void> = new vscode.EventEmitter<ProjectTreeItem | GroupTreeItem | PathGroupTreeItem | undefined | null | void>();
-    readonly onDidChangeTreeData: vscode.Event<ProjectTreeItem | GroupTreeItem | PathGroupTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
+// 项目树视图提供器
+export class ProjectsTreeProvider implements vscode.TreeDataProvider<
+    ProjectTreeItem | GroupTreeItem | PathGroupTreeItem
+> {
+    // 项目树视图数据变化事件发射器
+    private _onDidChangeTreeData: vscode.EventEmitter<
+        | ProjectTreeItem
+        | GroupTreeItem
+        | PathGroupTreeItem
+        | undefined
+        | null
+        | void
+    > = new vscode.EventEmitter<
+        | ProjectTreeItem
+        | GroupTreeItem
+        | PathGroupTreeItem
+        | undefined
+        | null
+        | void
+    >();
 
-    private viewMode: ViewMode = 'flat';
+    // 项目树视图数据变化事件
+    readonly onDidChangeTreeData: vscode.Event<
+        | ProjectTreeItem
+        | GroupTreeItem
+        | PathGroupTreeItem
+        | undefined
+        | null
+        | void
+    > = this._onDidChangeTreeData.event;
+
+    // 默认的项目树视图显示模式
+    private viewMode: ViewMode = "flat";
+    // vscode的扩展上下文
     private context: vscode.ExtensionContext;
 
     constructor(
         private projectManager: ProjectManager,
-        context: vscode.ExtensionContext
+        context: vscode.ExtensionContext,
     ) {
+        // 获取上下文
         this.context = context;
         // 从持久化存储中加载上次的显示模式
-        this.viewMode = this.context.globalState.get<ViewMode>('projectsViewMode', 'flat');
+        this.viewMode = this.context.globalState.get<ViewMode>(
+            "projectsViewMode",
+            "flat",
+        );
     }
 
     refresh(): void {
@@ -26,7 +60,7 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTree
     setViewMode(mode: ViewMode): void {
         this.viewMode = mode;
         // 保存到持久化存储
-        this.context.globalState.update('projectsViewMode', mode);
+        this.context.globalState.update("projectsViewMode", mode);
         this.refresh();
     }
 
@@ -35,91 +69,117 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTree
     }
 
     // 查找项目的树项（用于定位）
-    async findProjectTreeItem(projectPath: string): Promise<ProjectTreeItem | GroupTreeItem | PathGroupTreeItem | null> {
+    async findProjectTreeItem(
+        projectPath: string,
+    ): Promise<ProjectTreeItem | GroupTreeItem | PathGroupTreeItem | null> {
         const allProjects = this.projectManager.getAllProjects();
-        const project = allProjects.find(p => p.path === projectPath);
+        const project = allProjects.find((p) => p.path === projectPath);
 
         if (!project) {
             return null;
         }
 
-        if (this.viewMode === 'flat') {
+        if (this.viewMode === "flat") {
             // 平铺模式：直接返回项目树项
             return new ProjectTreeItem(
                 project,
-                this.projectManager.isSelected(project.path)
+                this.projectManager.isSelected(project.path),
             );
-        } else if (this.viewMode === 'by-type') {
+        } else if (this.viewMode === "by-type") {
             // 按类型分组：返回类型组
             const typeLabels: Record<string, string> = {
-                'local': '本地',
-                'dev-container': 'Dev Container',
-                'ssh-remote': 'SSH Remote',
-                'wsl': 'WSL',
-                'unknown': '未知'
+                local: "本地",
+                "dev-container": "Dev Container",
+                "ssh-remote": "SSH Remote",
+                wsl: "WSL",
+                unknown: "未知",
             };
             const groupLabel = typeLabels[project.type] || project.type;
-            const groupProjects = allProjects.filter(p => p.type === project.type);
+            const groupProjects = allProjects.filter(
+                (p) => p.type === project.type,
+            );
             return new GroupTreeItem(groupLabel, groupProjects, project.type);
-        } else if (this.viewMode === 'by-path') {
+        } else if (this.viewMode === "by-path") {
             // 按路径分组：返回第一级路径组
-            const parts = project.name.split('/');
+            const parts = project.name.split("/");
             if (parts.length > 1) {
                 const firstPart = parts[0];
                 // 找到所有以这个路径开头的项目
-                const pathProjects = allProjects.filter(p => p.name.startsWith(firstPart + '/'));
-                const root = new PathNode('', '');
+                const pathProjects = allProjects.filter((p) =>
+                    p.name.startsWith(firstPart + "/"),
+                );
+                const root = new PathNode("", "");
                 for (const p of pathProjects) {
-                    const pParts = p.name.split('/');
+                    const pParts = p.name.split("/");
                     if (!root.children.has(pParts[0])) {
-                        root.children.set(pParts[0], new PathNode(pParts[0], ''));
+                        root.children.set(
+                            pParts[0],
+                            new PathNode(pParts[0], ""),
+                        );
                     }
                 }
                 const childNode = root.children.get(firstPart);
                 if (childNode) {
-                    return new PathGroupTreeItem(firstPart, pathProjects, childNode);
+                    return new PathGroupTreeItem(
+                        firstPart,
+                        pathProjects,
+                        childNode,
+                    );
                 }
             }
-            return new ProjectTreeItem(project, this.projectManager.isSelected(project.path));
+            return new ProjectTreeItem(
+                project,
+                this.projectManager.isSelected(project.path),
+            );
         }
 
         return null;
     }
 
-    getTreeItem(element: ProjectTreeItem | GroupTreeItem | PathGroupTreeItem): vscode.TreeItem {
+    getTreeItem(
+        element: ProjectTreeItem | GroupTreeItem | PathGroupTreeItem,
+    ): vscode.TreeItem {
         return element;
     }
 
-    getChildren(element?: ProjectTreeItem | GroupTreeItem | PathGroupTreeItem): Thenable<(ProjectTreeItem | GroupTreeItem | PathGroupTreeItem)[]> {
+    getChildren(
+        element?: ProjectTreeItem | GroupTreeItem | PathGroupTreeItem,
+    ): Thenable<(ProjectTreeItem | GroupTreeItem | PathGroupTreeItem)[]> {
         if (!element) {
             // 根节点
             const projects = this.projectManager.getAllProjects();
 
-            if (this.viewMode === 'flat') {
+            if (this.viewMode === "flat") {
                 // 平铺展示
                 return Promise.resolve(
-                    projects.map(project => new ProjectTreeItem(
-                        project,
-                        this.projectManager.isSelected(project.path)
-                    ))
+                    projects.map(
+                        (project) =>
+                            new ProjectTreeItem(
+                                project,
+                                this.projectManager.isSelected(project.path),
+                            ),
+                    ),
                 );
-            } else if (this.viewMode === 'by-type') {
+            } else if (this.viewMode === "by-type") {
                 // 按类型分组
                 return Promise.resolve(this.groupByType(projects));
-            } else if (this.viewMode === 'by-path') {
+            } else if (this.viewMode === "by-path") {
                 // 按路径分组
                 return Promise.resolve(this.groupByPath(projects));
-            } else if (this.viewMode === 'by-selection') {
+            } else if (this.viewMode === "by-selection") {
                 // 按选中状态分组
                 return Promise.resolve(this.groupBySelection(projects));
             }
         } else if (element instanceof GroupTreeItem) {
             // 展开分组，显示组内项目
             return Promise.resolve(
-                element.projects.map(project => new ProjectTreeItem(
-                    project,
-                    this.projectManager.isSelected(project.path)
-                ))
+                element.projects.map(
+                    (project) =>
+                        new ProjectTreeItem(
+                            project,
+                            this.projectManager.isSelected(project.path),
+                        ),
+                ),
             );
         } else if (element instanceof PathGroupTreeItem) {
             // 展开路径分组
@@ -128,19 +188,17 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTree
             // 添加子节点（文件夹）
             for (const [name, childNode] of element.pathNode.children) {
                 const allProjects = this.collectAllProjects(childNode);
-                items.push(new PathGroupTreeItem(
-                    name,
-                    allProjects,
-                    childNode
-                ));
+                items.push(new PathGroupTreeItem(name, allProjects, childNode));
             }
 
             // 添加当前节点的项目
             for (const project of element.pathNode.projects) {
-                items.push(new ProjectTreeItem(
-                    project,
-                    this.projectManager.isSelected(project.path)
-                ));
+                items.push(
+                    new ProjectTreeItem(
+                        project,
+                        this.projectManager.isSelected(project.path),
+                    ),
+                );
             }
 
             return Promise.resolve(items);
@@ -160,22 +218,31 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTree
             groups.get(type)!.push(project);
         }
 
-        const typeOrder = ['local', 'dev-container', 'ssh-remote', 'wsl', 'unknown'];
+        const typeOrder = [
+            "local",
+            "dev-container",
+            "ssh-remote",
+            "wsl",
+            "unknown",
+        ];
         const typeLabels: Record<string, string> = {
-            'local': '本地',
-            'dev-container': 'Dev Container',
-            'ssh-remote': 'SSH Remote',
-            'wsl': 'WSL',
-            'unknown': '未知'
+            local: "本地",
+            "dev-container": "Dev Container",
+            "ssh-remote": "SSH Remote",
+            wsl: "WSL",
+            unknown: "未知",
         };
 
         return typeOrder
-            .filter(type => groups.has(type))
-            .map(type => new GroupTreeItem(
-                typeLabels[type] || type,
-                groups.get(type)!,
-                type
-            ));
+            .filter((type) => groups.has(type))
+            .map(
+                (type) =>
+                    new GroupTreeItem(
+                        typeLabels[type] || type,
+                        groups.get(type)!,
+                        type,
+                    ),
+            );
     }
 
     private groupBySelection(projects: Project[]): GroupTreeItem[] {
@@ -193,32 +260,30 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTree
         const groups: GroupTreeItem[] = [];
 
         if (selectedProjects.length > 0) {
-            groups.push(new GroupTreeItem(
-                '已选中',
-                selectedProjects,
-                'selected'
-            ));
+            groups.push(
+                new GroupTreeItem("已选中", selectedProjects, "selected"),
+            );
         }
 
         if (unselectedProjects.length > 0) {
-            groups.push(new GroupTreeItem(
-                '未选中',
-                unselectedProjects,
-                'unselected'
-            ));
+            groups.push(
+                new GroupTreeItem("未选中", unselectedProjects, "unselected"),
+            );
         }
 
         return groups;
     }
 
-    private groupByPath(projects: Project[]): (PathGroupTreeItem | ProjectTreeItem)[] {
+    private groupByPath(
+        projects: Project[],
+    ): (PathGroupTreeItem | ProjectTreeItem)[] {
         // 构建树形结构
-        const root = new PathNode('', '');
+        const root = new PathNode("", "");
 
         for (const project of projects) {
-            const parts = project.name.split('/');
+            const parts = project.name.split("/");
             let current = root;
-            let currentPath = '';
+            let currentPath = "";
 
             for (let i = 0; i < parts.length; i++) {
                 const part = parts[i];
@@ -230,7 +295,10 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTree
                 } else {
                     // 中间部分，创建或获取子节点
                     if (!current.children.has(part)) {
-                        current.children.set(part, new PathNode(part, currentPath));
+                        current.children.set(
+                            part,
+                            new PathNode(part, currentPath),
+                        );
                     }
                     current = current.children.get(part)!;
                     currentPath = current.fullPath;
@@ -242,25 +310,25 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTree
         return this.pathNodeToTreeItems(root);
     }
 
-    private pathNodeToTreeItems(node: PathNode): (PathGroupTreeItem | ProjectTreeItem)[] {
+    private pathNodeToTreeItems(
+        node: PathNode,
+    ): (PathGroupTreeItem | ProjectTreeItem)[] {
         const items: (PathGroupTreeItem | ProjectTreeItem)[] = [];
 
         // 添加子节点（文件夹）
         for (const [name, childNode] of node.children) {
             const allProjects = this.collectAllProjects(childNode);
-            items.push(new PathGroupTreeItem(
-                name,
-                allProjects,
-                childNode
-            ));
+            items.push(new PathGroupTreeItem(name, allProjects, childNode));
         }
 
         // 添加当前节点的项目
         for (const project of node.projects) {
-            items.push(new ProjectTreeItem(
-                project,
-                this.projectManager.isSelected(project.path)
-            ));
+            items.push(
+                new ProjectTreeItem(
+                    project,
+                    this.projectManager.isSelected(project.path),
+                ),
+            );
         }
 
         return items;
@@ -280,12 +348,15 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<ProjectTree
 class PathNode {
     children: Map<string, PathNode> = new Map();
     projects: Project[] = [];
-    fullPath: string = ''; // 存储完整路径
+    fullPath: string = ""; // 存储完整路径
 
-    constructor(public name: string, parentPath: string = '') {
+    constructor(
+        public name: string,
+        parentPath: string = "",
+    ) {
         // 计算完整路径
         if (parentPath) {
-            this.fullPath = parentPath + '/' + name;
+            this.fullPath = parentPath + "/" + name;
         } else {
             this.fullPath = name;
         }
@@ -296,27 +367,36 @@ export class GroupTreeItem extends vscode.TreeItem {
     constructor(
         public readonly label: string,
         public readonly projects: Project[],
-        public readonly groupType: string
+        public readonly groupType: string,
     ) {
         super(label, vscode.TreeItemCollapsibleState.Collapsed);
 
         this.tooltip = `${projects.length} 个项目`;
         this.description = `${projects.length} 个项目`;
-        this.contextValue = 'projectGroup';
+        this.contextValue = "projectGroup";
 
         // 根据分组类型设置图标 - 不使用 emoji，只用 VS Code 图标
-        if (groupType === 'local') {
-            this.iconPath = new vscode.ThemeIcon('folder');
-        } else if (groupType === 'dev-container') {
-            this.iconPath = new vscode.ThemeIcon('server-environment', new vscode.ThemeColor('charts.blue'));
-        } else if (groupType === 'ssh-remote') {
-            this.iconPath = new vscode.ThemeIcon('vm', new vscode.ThemeColor('charts.orange'));
-        } else if (groupType === 'wsl') {
-            this.iconPath = new vscode.ThemeIcon('terminal-linux', new vscode.ThemeColor('charts.purple'));
-        } else if (groupType === 'host') {
-            this.iconPath = new vscode.ThemeIcon('server');
+        if (groupType === "local") {
+            this.iconPath = new vscode.ThemeIcon("folder");
+        } else if (groupType === "dev-container") {
+            this.iconPath = new vscode.ThemeIcon(
+                "server-environment",
+                new vscode.ThemeColor("charts.blue"),
+            );
+        } else if (groupType === "ssh-remote") {
+            this.iconPath = new vscode.ThemeIcon(
+                "vm",
+                new vscode.ThemeColor("charts.orange"),
+            );
+        } else if (groupType === "wsl") {
+            this.iconPath = new vscode.ThemeIcon(
+                "terminal-linux",
+                new vscode.ThemeColor("charts.purple"),
+            );
+        } else if (groupType === "host") {
+            this.iconPath = new vscode.ThemeIcon("server");
         } else {
-            this.iconPath = new vscode.ThemeIcon('folder');
+            this.iconPath = new vscode.ThemeIcon("folder");
         }
     }
 }
@@ -325,36 +405,36 @@ export class PathGroupTreeItem extends vscode.TreeItem {
     constructor(
         public readonly label: string,
         public readonly projects: Project[],
-        public readonly pathNode: PathNode
+        public readonly pathNode: PathNode,
     ) {
         super(label, vscode.TreeItemCollapsibleState.Collapsed);
 
         this.tooltip = `${projects.length} 个项目`;
         this.description = `${projects.length} 个项目`;
-        this.contextValue = 'pathGroup';
-        this.iconPath = new vscode.ThemeIcon('folder');
+        this.contextValue = "pathGroup";
+        this.iconPath = new vscode.ThemeIcon("folder");
     }
 }
 
 export class ProjectTreeItem extends vscode.TreeItem {
     constructor(
         public readonly project: Project,
-        public readonly isSelected: boolean
+        public readonly isSelected: boolean,
     ) {
         super(project.name, vscode.TreeItemCollapsibleState.None);
 
         this.tooltip = this.buildTooltip();
         this.description = this.buildDescription();
-        this.contextValue = 'project';
+        this.contextValue = "project";
 
         // 根据项目类型和选中状态设置图标
         this.iconPath = this.getIconForProject();
 
         // 点击切换选中状态
         this.command = {
-            command: 'devContainerGroups.toggleProject',
-            title: '切换选中状态',
-            arguments: [this]
+            command: "projectGroupManager.toggleProject",
+            title: "切换选中状态",
+            arguments: [this],
         };
     }
 
@@ -364,30 +444,45 @@ export class ProjectTreeItem extends vscode.TreeItem {
     private getIconForProject(): vscode.ThemeIcon {
         // 如果已选中，使用勾选图标
         if (this.isSelected) {
-            return new vscode.ThemeIcon('check', new vscode.ThemeColor('charts.green'));
+            return new vscode.ThemeIcon(
+                "check",
+                new vscode.ThemeColor("charts.green"),
+            );
         }
 
         // 根据项目类型返回不同图标
         switch (this.project.type) {
-            case 'dev-container':
+            case "dev-container":
                 // Dev Container: 使用 🐳
-                return new vscode.ThemeIcon('server-environment', new vscode.ThemeColor('charts.blue'));
+                return new vscode.ThemeIcon(
+                    "server-environment",
+                    new vscode.ThemeColor("charts.blue"),
+                );
 
-            case 'ssh-remote':
+            case "ssh-remote":
                 // SSH Remote: 使用 🖥️
-                return new vscode.ThemeIcon('vm', new vscode.ThemeColor('charts.orange'));
+                return new vscode.ThemeIcon(
+                    "vm",
+                    new vscode.ThemeColor("charts.orange"),
+                );
 
-            case 'wsl':
+            case "wsl":
                 // WSL: Linux 图标（紫色）
-                return new vscode.ThemeIcon('terminal-linux', new vscode.ThemeColor('charts.purple'));
+                return new vscode.ThemeIcon(
+                    "terminal-linux",
+                    new vscode.ThemeColor("charts.purple"),
+                );
 
-            case 'local':
+            case "local":
                 // 本地项目: 文件夹图标（默认颜色）
-                return new vscode.ThemeIcon('folder');
+                return new vscode.ThemeIcon("folder");
 
             default:
                 // 未知类型: 问号图标（灰色）
-                return new vscode.ThemeIcon('question', new vscode.ThemeColor('charts.gray'));
+                return new vscode.ThemeIcon(
+                    "question",
+                    new vscode.ThemeColor("charts.gray"),
+                );
         }
     }
 
@@ -397,9 +492,9 @@ export class ProjectTreeItem extends vscode.TreeItem {
     private buildDescription(): string {
         // 只显示选中标记，不显示类型标签
         if (this.isSelected) {
-            return '✓';
+            return "✓";
         }
-        return '';
+        return "";
     }
 
     /**
@@ -407,16 +502,16 @@ export class ProjectTreeItem extends vscode.TreeItem {
      */
     private getTypeLabel(): string {
         switch (this.project.type) {
-            case 'dev-container':
-                return '🐳 Dev Container';
-            case 'ssh-remote':
-                return '🖥️ SSH Remote';
-            case 'wsl':
-                return '🐧 WSL';
-            case 'local':
-                return '📁 本地';
+            case "dev-container":
+                return "🐳 Dev Container";
+            case "ssh-remote":
+                return "🖥️ SSH Remote";
+            case "wsl":
+                return "🐧 WSL";
+            case "local":
+                return "📁 本地";
             default:
-                return '❓ 未知';
+                return "❓ 未知";
         }
     }
 
@@ -431,10 +526,10 @@ export class ProjectTreeItem extends vscode.TreeItem {
         lines.push(`路径: ${this.project.path}`);
 
         if (this.isSelected) {
-            lines.push('');
-            lines.push('✓ 已选中');
+            lines.push("");
+            lines.push("✓ 已选中");
         }
 
-        return lines.join('\n');
+        return lines.join("\n");
     }
 }

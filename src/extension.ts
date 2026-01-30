@@ -36,7 +36,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 刷新项目列表
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.refresh",
+            "projectGroupManager.refresh",
             async () => {
                 // 先清理重复项目
                 const duplicateCount = projectManager.cleanDuplicates();
@@ -63,7 +63,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         // 注册命令
         vscode.commands.registerCommand(
-            "devContainerGroups.toggleProject",
+            "projectGroupManager.toggleProject",
             (item) => {
                 if (item && item.project) {
                     projectManager.toggleSelection(item.project.path);
@@ -74,44 +74,10 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
-    // 在项目列表中定位到项目
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            "devContainerGroups.locateProjectInList",
-            async (item) => {
-                if (item && item.project) {
-                    // 先切换选中状态
-                    projectManager.toggleSelection(item.project.path);
-                    projectsProvider.refresh();
-                    groupsProvider.refresh();
-
-                    try {
-                        // 查找项目的树项
-                        const treeItem =
-                            await projectsProvider.findProjectTreeItem(
-                                item.project.path,
-                            );
-
-                        if (treeItem) {
-                            // 使用 reveal 定位到项目
-                            await projectsTreeView.reveal(treeItem, {
-                                select: true,
-                                focus: true,
-                                expand: true,
-                            });
-                        }
-                    } catch (error) {
-                        console.log("无法定位到项目:", error);
-                    }
-                }
-            },
-        ),
-    );
-
     // 打开选中的项目
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.openSelected",
+            "projectGroupManager.openSelected",
             async () => {
                 const selected = projectManager.getSelectedProjects();
                 if (selected.length === 0) {
@@ -135,7 +101,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 清除所有选中
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.clearSelection",
+            "projectGroupManager.clearSelection",
             () => {
                 projectManager.clearSelection();
                 projectsProvider.refresh();
@@ -148,7 +114,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 搜索项目
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.searchProjects",
+            "projectGroupManager.searchProjects",
             async () => {
                 const allProjects = projectManager.getAllProjects();
 
@@ -206,7 +172,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 保存为组
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.saveAsGroup",
+            "projectGroupManager.saveAsGroup",
             async () => {
                 const selected = projectManager.getSelectedProjects();
                 if (selected.length === 0) {
@@ -275,7 +241,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 打开组
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.openGroup",
+            "projectGroupManager.openGroup",
             async (item) => {
                 if (item && item.group) {
                     const answer = await vscode.window.showInformationMessage(
@@ -295,7 +261,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 清空所有组合
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.clearAllGroups",
+            "projectGroupManager.clearAllGroups",
             async () => {
                 const allGroups = groupManager.getAllGroups();
 
@@ -324,7 +290,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 在项目列表中选中组内的项目
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.selectGroupInProjects",
+            "projectGroupManager.selectGroupInProjects",
             async (item) => {
                 if (item && item.group) {
                     // 清除当前选中
@@ -395,7 +361,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 删除组
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.deleteGroup",
+            "projectGroupManager.deleteGroup",
             async (item) => {
                 if (item && item.group) {
                     const answer = await vscode.window.showWarningMessage(
@@ -419,7 +385,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 重命名组
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.renameGroup",
+            "projectGroupManager.renameGroup",
             async (item) => {
                 if (item && item.group) {
                     const newName = await vscode.window.showInputBox({
@@ -460,7 +426,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 复制组
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.duplicateGroup",
+            "projectGroupManager.duplicateGroup",
             async (item) => {
                 if (item && item.group) {
                     // 生成默认的复制名称
@@ -508,7 +474,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 设置组权重分
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.setGroupWeight",
+            "projectGroupManager.setGroupWeight",
             async (item) => {
                 if (item && item.group) {
                     const currentWeight = item.group.weight ?? 0;
@@ -544,7 +510,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 从组合中移除项目
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.removeProjectFromGroup",
+            "projectGroupManager.removeProjectFromGroup",
             async (item) => {
                 if (item && item.project && item.groupName) {
                     const answer = await vscode.window.showWarningMessage(
@@ -571,7 +537,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 添加项目到组合
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.addProjectToGroup",
+            "projectGroupManager.addProjectToGroup",
             async (item) => {
                 if (item && item.project) {
                     // 获取所有组合
@@ -632,34 +598,37 @@ export function activate(context: vscode.ExtensionContext) {
     // 切换显示模式
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.setViewModeFlat",
+            "projectGroupManager.setViewModeFlat",
             () => {
                 projectsProvider.setViewMode("flat");
             },
         ),
     );
 
+    // 按类型显示项目
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.setViewModeByType",
+            "projectGroupManager.setViewModeByType",
             () => {
                 projectsProvider.setViewMode("by-type");
             },
         ),
     );
 
+    // 按路径显示项目
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.setViewModeByPath",
+            "projectGroupManager.setViewModeByPath",
             () => {
                 projectsProvider.setViewMode("by-path");
             },
         ),
     );
 
+    // 按选择与否显示项目
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.setViewModeBySelection",
+            "projectGroupManager.setViewModeBySelection",
             () => {
                 projectsProvider.setViewMode("by-selection");
             },
@@ -669,7 +638,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 重命名项目
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.renameProject",
+            "projectGroupManager.renameProject",
             async (item) => {
                 if (item && item.project) {
                     const newName = await vscode.window.showInputBox({
@@ -708,7 +677,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 删除项目
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.deleteProject",
+            "projectGroupManager.deleteProject",
             async (item) => {
                 if (item && item.project) {
                     const answer = await vscode.window.showWarningMessage(
@@ -741,7 +710,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 重命名路径节点
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.renamePathGroup",
+            "projectGroupManager.renamePathGroup",
             async (item) => {
                 if (item && item.pathNode && item.label) {
                     // 获取完整的路径前缀
@@ -848,11 +817,11 @@ export function activate(context: vscode.ExtensionContext) {
     // 打开单个项目
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.openProject",
+            "projectGroupManager.openProject",
             async (item) => {
                 if (item && item.project) {
                     try {
-                        await openDevContainer(item.project.path);
+                        await openProject(item.project.path);
                         vscode.window.showInformationMessage(
                             `正在打开项目 "${item.project.name}"`,
                         );
@@ -869,7 +838,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 打开 Project Manager 配置文件
     context.subscriptions.push(
         vscode.commands.registerCommand(
-            "devContainerGroups.openProjectManagerConfig",
+            "projectGroupManager.openProjectManagerConfig",
             async () => {
                 const configPath = projectManager.getConfigPath();
                 if (configPath) {
@@ -884,7 +853,7 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
-    // 批量打开项目的核心函数
+    // 批量打开项目
     async function openProjects(projectPaths: string[]) {
         const config = vscode.workspace.getConfiguration("projectGroups");
         const openDelay = config.get<number>("openDelay", 2000);
@@ -913,7 +882,7 @@ export function activate(context: vscode.ExtensionContext) {
                     });
 
                     try {
-                        await openDevContainer(projectPath);
+                        await openProject(projectPath);
                         opened++;
                     } catch (error) {
                         vscode.window.showErrorMessage(
@@ -946,7 +915,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     // 打开单个项目
-    async function openDevContainer(projectPath: string) {
+    async function openProject(projectPath: string) {
         // 如果是远程 URI，直接使用 URI 打开
         if (projectPath.startsWith("vscode-remote://")) {
             const uri = vscode.Uri.parse(projectPath);

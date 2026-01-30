@@ -1,11 +1,13 @@
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
+// 项目组合定义
 export interface ProjectGroup {
     name: string;
     projects: string[];
-    weight?: number;  // 权重分，默认为0
+    weight?: number; // 权重分，默认为0
 }
 
+// 项目组合管理类
 export class GroupManager {
     private context: vscode.ExtensionContext;
     private groups: Map<string, ProjectGroup> = new Map();
@@ -16,7 +18,10 @@ export class GroupManager {
     }
 
     private loadGroups(): void {
-        const saved = this.context.globalState.get<ProjectGroup[]>('projectGroups', []);
+        const saved = this.context.globalState.get<ProjectGroup[]>(
+            "projectGroups",
+            [],
+        );
         this.groups.clear();
 
         for (const group of saved) {
@@ -25,14 +30,14 @@ export class GroupManager {
             this.groups.set(group.name, {
                 name: group.name,
                 projects: uniquePaths,
-                weight: group.weight
+                weight: group.weight,
             });
         }
     }
 
     private saveGroups(): void {
         const groupsArray = Array.from(this.groups.values());
-        this.context.globalState.update('projectGroups', groupsArray);
+        this.context.globalState.update("projectGroups", groupsArray);
     }
 
     getAllGroups(): ProjectGroup[] {
@@ -41,7 +46,7 @@ export class GroupManager {
             const weightA = a.weight ?? 0;
             const weightB = b.weight ?? 0;
             if (weightA !== weightB) {
-                return weightB - weightA;  // 降序
+                return weightB - weightA; // 降序
             }
             // 权重分相同时，按名称字母顺序排序
             return a.name.localeCompare(b.name);
@@ -59,7 +64,7 @@ export class GroupManager {
         this.groups.set(name, {
             name,
             projects: uniquePaths,
-            weight: weight
+            weight: weight,
         });
         this.saveGroups();
     }
@@ -87,7 +92,7 @@ export class GroupManager {
         this.groups.set(newName, {
             name: newName,
             projects: group.projects,
-            weight: group.weight
+            weight: group.weight,
         });
 
         this.saveGroups();
@@ -114,7 +119,9 @@ export class GroupManager {
     removeProjectFromGroup(groupName: string, projectPath: string): void {
         const group = this.groups.get(groupName);
         if (group) {
-            group.projects = group.projects.filter(path => path !== projectPath);
+            group.projects = group.projects.filter(
+                (path) => path !== projectPath,
+            );
             this.saveGroups();
         }
     }
