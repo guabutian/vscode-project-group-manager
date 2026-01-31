@@ -39,6 +39,10 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<
     private viewMode: ViewMode = "flat";
     private context: vscode.ExtensionContext;
 
+    // 防抖定时器
+    private refreshDebounceTimer: NodeJS.Timeout | null = null;
+    private readonly REFRESH_DEBOUNCE_MS = 100; // 100ms 防抖延迟
+
     constructor(
         private projectManager: ProjectManager,
         context: vscode.ExtensionContext,
@@ -51,8 +55,26 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<
         );
     }
 
-    // 刷新树视图
+    // 刷新树视图（带防抖）
     refresh(): void {
+        // 清除之前的定时器
+        if (this.refreshDebounceTimer) {
+            clearTimeout(this.refreshDebounceTimer);
+        }
+
+        // 设置新的定时器
+        this.refreshDebounceTimer = setTimeout(() => {
+            this._onDidChangeTreeData.fire();
+            this.refreshDebounceTimer = null;
+        }, this.REFRESH_DEBOUNCE_MS);
+    }
+
+    // 立即刷新（不使用防抖）
+    refreshImmediate(): void {
+        if (this.refreshDebounceTimer) {
+            clearTimeout(this.refreshDebounceTimer);
+            this.refreshDebounceTimer = null;
+        }
         this._onDidChangeTreeData.fire();
     }
 

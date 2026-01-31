@@ -2,7 +2,7 @@
   "name": "project-group-manager",
   "displayName": "Project Group Manager",
   "description": "批量管理和打开项目组，支持本地、Dev Container、SSH Remote、WSL 等多种项目类型",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "guabutian",
   "icon": "icon.png",
   "engines": {
@@ -154,6 +154,12 @@
         "category": "Project Groups"
       },
       {
+        "command": "projectGroupManager.openGroupsConfig",
+        "title": "编辑组合配置文件",
+        "icon": "$(edit)",
+        "category": "Project Groups"
+      },
+      {
         "command": "projectGroupManager.openProject",
         "title": "打开项目",
         "icon": "$(folder-opened)",
@@ -163,6 +169,12 @@
         "command": "projectGroupManager.renamePathGroup",
         "title": "重命名路径",
         "icon": "$(edit)",
+        "category": "Project Groups"
+      },
+      {
+        "command": "projectGroupManager.showGroupsList",
+        "title": "显示所有组合列表",
+        "icon": "$(list-unordered)",
         "category": "Project Groups"
       }
     ],
@@ -232,9 +244,19 @@
           "group": "navigation@7"
         },
         {
-          "command": "projectGroupManager.clearAllGroups",
+          "command": "projectGroupManager.showGroupsList",
           "when": "view == projectGroupsGroupsView",
           "group": "navigation@1"
+        },
+        {
+          "command": "projectGroupManager.openGroupsConfig",
+          "when": "view == projectGroupsGroupsView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "projectGroupManager.clearAllGroups",
+          "when": "view == projectGroupsGroupsView",
+          "group": "navigation@3"
         }
       ],
       "projectGroups.viewModeSubmenu": [
@@ -323,6 +345,15 @@
         }
       ]
     },
+    "keybindings": [
+      {
+        "command": "projectGroupManager.showGroupsList",
+        "key": "cmd+ctrl+g",
+        "mac": "cmd+ctrl+g",
+        "win": "ctrl+alt+g",
+        "linux": "ctrl+alt+g"
+      }
+    ],
     "configuration": {
       "title": "Project Group Manager",
       "properties": {
@@ -351,6 +382,11 @@
           "type": "string",
           "default": "",
           "description": "Project Manager 配置文件的自定义路径（留空自动检测）"
+        },
+        "projectGroups.groupsConfigPath": {
+          "type": "string",
+          "default": "",
+          "description": "组合配置文件的自定义路径（留空使用默认位置，所有 Profile 共享）"
         },
         "projectGroups.showNotifications": {
           "type": "boolean",

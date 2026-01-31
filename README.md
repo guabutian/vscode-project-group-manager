@@ -49,8 +49,8 @@
     - 组会出现在"组合列表"视图中
 
 4. **打开项目组**
-    - 在"组合列表"中右键点击组
-    - 选择"打开组"
+    - 方式一：在"组合列表"中右键点击组，选择"打开组"
+    - 方式二：点击"组合列表"工具栏的"显示所有组合列表"按钮（或使用快捷键 `Cmd+Ctrl+G`），在弹出的列表中选择要打开的组
     - 所有项目会按配置的延迟依次打开
 
 ### 高级功能
@@ -85,7 +85,12 @@
 
 #### 快速搜索
 
-点击工具栏的搜索按钮，输入关键词快速定位项目。
+- **搜索项目**：点击"项目列表"工具栏的搜索按钮，输入关键词快速定位项目
+- **显示组合列表**：点击"组合列表"工具栏的列表按钮（或使用快捷键 `Cmd+Ctrl+G` / `Ctrl+Alt+G`），快速查看和打开所有组合
+
+## 🎹 快捷键
+
+- `Cmd+Ctrl+G` (macOS) / `Ctrl+Alt+G` (Windows/Linux)：显示所有组合列表
 
 ## ⚙️ 配置选项
 
@@ -105,6 +110,9 @@
     // Project Manager 配置文件的自定义路径（留空自动检测）
     "projectGroups.projectManagerPath": "",
 
+    // 组合配置文件的自定义路径（留空使用默认位置，所有 Profile 共享）
+    "projectGroups.groupsConfigPath": "",
+
     // 显示操作完成通知
     "projectGroups.showNotifications": true,
 
@@ -119,8 +127,32 @@
 - **batchSize**：每批打开的项目数量，建议设置为 3-5 个
 - **batchDelay**：批次之间的延迟，给系统足够的时间处理已打开的项目
 - **projectManagerPath**：如果 Project Manager 配置文件不在默认位置，可以手动指定路径
+- **groupsConfigPath**：组合配置文件的自定义路径。默认情况下，组合数据存储在 `~/Library/Application Support/Code/User/globalStorage/guabutian.project-group-manager/groups.json`（macOS），所有 Profile 共享同一份配置
 - **showNotifications**：是否显示操作完成的通知消息
 - **autoRefreshOnStartup**：启动 VS Code 时是否自动刷新项目列表
+
+## 💾 数据存储
+
+### 项目列表
+
+项目列表数据来自 [Project Manager](https://marketplace.visualstudio.com/items?itemName=alefragnani.project-manager) 扩展的配置文件，所有 Profile 共享同一份数据。
+
+### 组合列表
+
+组合列表数据存储在文件系统中，**所有 Profile 共享同一份配置**：
+
+- **macOS**: `~/Library/Application Support/Code/User/globalStorage/guabutian.project-group-manager/groups.json`
+- **Windows**: `%APPDATA%\Code\User\globalStorage\guabutian.project-group-manager\groups.json`
+- **Linux**: `~/.config/Code/User/globalStorage/guabutian.project-group-manager/groups.json`
+
+这意味着：
+- ✅ 在不同的 Profile 中可以看到相同的组合列表
+- ✅ 切换 Profile 不会丢失组合数据
+- ✅ 可以手动编辑配置文件（点击"组合列表"工具栏的"编辑组合配置文件"按钮）
+
+### 数据迁移
+
+如果你之前使用的是旧版本（组合数据存储在 Profile 的 globalState 中），插件会在首次启动时自动将数据迁移到新的存储位置。
 
 ## 📋 依赖要求
 

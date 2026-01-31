@@ -264,6 +264,77 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
+    // 显示所有组合列表
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "projectGroupManager.showGroupsList",
+            async () => {
+                const allGroups = groupManager.getAllGroups();
+
+                if (allGroups.length === 0) {
+                    vscode.window.showInformationMessage("没有可用的组合");
+                    return;
+                }
+
+                // 获取所有项目（避免在循环中重复获取）
+                const allProjects = projectManager.getAllProjects();
+
+                // 创建项目路径到项目对象的映射，优化查找性能（O(1) 而不是 O(n)）
+                const projectMap = new Map(allProjects.map(p => [p.path, p]));
+
+                // 创建快速选择项
+                const quickPickItems = allGroups.map((group) => {
+                    const weightLabel = group.weight ? ` [权重: ${group.weight}]` : "";
+
+                    // 限制显示的项目数量，避免字符串过长
+                    const maxDisplayProjects = 20;
+                    const displayProjects = group.projects.slice(0, maxDisplayProjects);
+                    const projectNames = displayProjects.map((p) => {
+                        // 使用 Map 进行 O(1) 查找
+                        const project = projectMap.get(p);
+                        return project ? project.name : p;
+                    });
+
+                    // 如果项目数量超过限制，添加省略提示
+                    const detailText = projectNames.join(", ") +
+                        (group.projects.length > maxDisplayProjects
+                            ? ` ... 等 ${group.projects.length} 个项目`
+                            : "");
+
+                    return {
+                        label: `$(folder) ${group.name}${weightLabel}`,
+                        description: `${group.projects.length} 个项目`,
+                        detail: detailText,
+                        group: group,
+                    };
+                });
+
+                // 显示快速选择面板
+                const selected = await vscode.window.showQuickPick(
+                    quickPickItems,
+                    {
+                        placeHolder: `选择要打开的组合（共 ${allGroups.length} 个）`,
+                        matchOnDescription: true,
+                        matchOnDetail: true,
+                    },
+                );
+
+                if (selected) {
+                    // 确认是否打开
+                    const answer = await vscode.window.showInformationMessage(
+                        `打开组合 "${selected.group.name}"（包含 ${selected.group.projects.length} 个项目）？`,
+                        "是",
+                        "否",
+                    );
+
+                    if (answer === "是") {
+                        await openProjects(selected.group.projects);
+                    }
+                }
+            },
+        ),
+    );
+
     // 清空所有组合
     context.subscriptions.push(
         vscode.commands.registerCommand(
@@ -853,6 +924,24 @@ export function activate(context: vscode.ExtensionContext) {
                 } else {
                     vscode.window.showErrorMessage(
                         "未找到 Project Manager 配置文件",
+                    );
+                }
+            },
+        ),
+    );
+
+    // 打开组合配置文件
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "projectGroupManager.openGroupsConfig",
+            async () => {
+                const configPath = groupManager.getConfigPath();
+                if (configPath) {
+                    const uri = vscode.Uri.file(configPath);
+                    await vscode.window.showTextDocument(uri);
+                } else {
+                    vscode.window.showErrorMessage(
+                        "未找到组合配置文件",
                     );
                 }
             },

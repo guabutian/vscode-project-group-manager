@@ -2,6 +2,37 @@
 
 所有重要的项目变更都会记录在此文件中。
 
+## [0.0.3] - 2026-01-31
+
+### 重大改进
+
+- 🔄 **组合列表存储方式重构**：从 Profile 隔离的 globalState 改为文件系统存储
+  - 所有 Profile 现在共享同一份组合配置
+  - 配置文件位置：`~/Library/Application Support/Code/User/globalStorage/guabutian.project-group-manager/groups.json`（macOS）
+  - 自动从旧版本迁移数据
+
+### 新增功能
+
+- ➕ 新增"编辑组合配置文件"命令，可直接编辑 groups.json
+- ⚙️ 新增配置项 `projectGroups.groupsConfigPath`，支持自定义组合配置文件路径
+
+### 修复问题
+
+- 🐛 修复不同 Profile 之间无法共享组合列表的问题
+- 🐛 修复切换 Profile 后组合数据丢失的问题
+
+### 技术改进
+
+- 📦 组合数据持久化方式优化，与 Project Manager 保持一致
+- 🔧 改进配置文件读写逻辑，增强错误处理
+
+## [0.0.2] - 2026-01-30
+
+### 改进
+
+- 📝 优化文档和说明
+- 🐛 修复一些小问题
+
 ## [0.0.1] - 2026-01-30
 
 ### 新增功能

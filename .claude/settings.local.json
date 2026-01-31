@@ -3,7 +3,16 @@
     "allow": [
       "Bash(npm run compile:*)",
       "Bash(grep:*)",
-      "Bash(comm:*)"
+      "Bash(comm:*)",
+      "Bash(unzip:*)",
+      "Bash(python3:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(sqlite3:*)",
+      "Bash(cd:*)",
+      "Bash(for profile in ~/Library/Application Support/Code/User/profiles/*/globalStorage/state.vscdb)",
+      "Bash(npm run package:*)",
+      "Bash(npm run lint:*)"
     ]
   }
 }

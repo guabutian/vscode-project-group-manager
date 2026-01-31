@@ -16,13 +16,35 @@ export class GroupsTreeProvider implements vscode.TreeDataProvider<
         GroupTreeItem | ProjectInGroupItem | undefined | null | void
     > = this._onDidChangeTreeData.event;
 
+    // 防抖定时器
+    private refreshDebounceTimer: NodeJS.Timeout | null = null;
+    private readonly REFRESH_DEBOUNCE_MS = 100; // 100ms 防抖延迟
+
     constructor(
         private groupManager: GroupManager,
         private projectManager: ProjectManager,
     ) {}
 
-    // 刷新树视图
+    // 刷新树视图（带防抖）
     refresh(): void {
+        // 清除之前的定时器
+        if (this.refreshDebounceTimer) {
+            clearTimeout(this.refreshDebounceTimer);
+        }
+
+        // 设置新的定时器
+        this.refreshDebounceTimer = setTimeout(() => {
+            this._onDidChangeTreeData.fire();
+            this.refreshDebounceTimer = null;
+        }, this.REFRESH_DEBOUNCE_MS);
+    }
+
+    // 立即刷新（不使用防抖）
+    refreshImmediate(): void {
+        if (this.refreshDebounceTimer) {
+            clearTimeout(this.refreshDebounceTimer);
+            this.refreshDebounceTimer = null;
+        }
         this._onDidChangeTreeData.fire();
     }
 
@@ -50,11 +72,14 @@ export class GroupsTreeProvider implements vscode.TreeDataProvider<
         } else if (element instanceof GroupTreeItem) {
             // 展开组合：返回组内的项目
             const allProjects = this.projectManager.getAllProjects();
+
+            // 创建项目路径到项目对象的映射，优化查找性能（O(1) 而不是 O(n)）
+            const projectMap = new Map(allProjects.map(p => [p.path, p]));
+
             const projectItems = element.group.projects
                 .map((projectPath) => {
-                    const project = allProjects.find(
-                        (p) => p.path === projectPath,
-                    );
+                    // 使用 Map 进行 O(1) 查找
+                    const project = projectMap.get(projectPath);
                     if (!project) {
                         return null;
                     }
