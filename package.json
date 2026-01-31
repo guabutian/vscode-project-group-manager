@@ -2,7 +2,7 @@
   "name": "project-group-manager",
   "displayName": "Project Group Manager",
   "description": "批量管理和打开项目组，支持本地、Dev Container、SSH Remote、WSL 等多种项目类型",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "guabutian",
   "icon": "icon.png",
   "engines": {
