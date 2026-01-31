@@ -176,6 +176,12 @@
         "title": "显示所有组合列表",
         "icon": "$(list-unordered)",
         "category": "Project Groups"
+      },
+      {
+        "command": "projectGroupManager.refreshGroups",
+        "title": "刷新组合列表",
+        "icon": "$(refresh)",
+        "category": "Project Groups"
       }
     ],
     "viewsContainers": {
@@ -244,19 +250,24 @@
           "group": "navigation@7"
         },
         {
-          "command": "projectGroupManager.showGroupsList",
+          "command": "projectGroupManager.refreshGroups",
           "when": "view == projectGroupsGroupsView",
           "group": "navigation@1"
         },
         {
-          "command": "projectGroupManager.openGroupsConfig",
+          "command": "projectGroupManager.showGroupsList",
           "when": "view == projectGroupsGroupsView",
           "group": "navigation@2"
         },
         {
-          "command": "projectGroupManager.clearAllGroups",
+          "command": "projectGroupManager.openGroupsConfig",
           "when": "view == projectGroupsGroupsView",
           "group": "navigation@3"
+        },
+        {
+          "command": "projectGroupManager.clearAllGroups",
+          "when": "view == projectGroupsGroupsView",
+          "group": "navigation@4"
         }
       ],
       "projectGroups.viewModeSubmenu": [

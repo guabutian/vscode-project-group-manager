@@ -131,7 +131,7 @@ export class GroupManager {
         }
     }
 
-    // 异步加载组合（用于未来优化）
+    // 异步加载组合（公共方法，用于刷新）
     async loadGroupsAsync(): Promise<void> {
         this.groups.clear();
 

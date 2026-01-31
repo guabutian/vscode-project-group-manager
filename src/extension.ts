@@ -175,6 +175,24 @@ export function activate(context: vscode.ExtensionContext) {
 
     // ==================== 组合管理命令 ====================
 
+    // 刷新组合列表
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "projectGroupManager.refreshGroups",
+            async () => {
+                // 重新加载组合数据
+                await groupManager.loadGroupsAsync();
+                groupsProvider.refresh();
+
+                // 显示刷新结果
+                const groupCount = groupManager.getAllGroups().length;
+                vscode.window.showInformationMessage(
+                    `已重新加载 ${groupCount} 个组合`,
+                );
+            },
+        ),
+    );
+
     // 保存为组
     context.subscriptions.push(
         vscode.commands.registerCommand(
