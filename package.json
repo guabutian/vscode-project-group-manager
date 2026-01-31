@@ -348,10 +348,9 @@
     "keybindings": [
       {
         "command": "projectGroupManager.showGroupsList",
-        "key": "cmd+ctrl+g",
-        "mac": "cmd+ctrl+g",
-        "win": "ctrl+alt+g",
-        "linux": "ctrl+alt+g"
+        "mac": "cmd+ctrl+shift+g",
+        "win": "ctrl+alt+shift+g",
+        "linux": "ctrl+alt+shift+g"
       }
     ],
     "configuration": {
