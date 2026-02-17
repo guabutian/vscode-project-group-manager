@@ -6,3 +6,6 @@ dist
 .vscode-test-web
 .vscode/
 .DS_Store
+.devcontainer
+.gitmodules
+.devcontainer-configs
